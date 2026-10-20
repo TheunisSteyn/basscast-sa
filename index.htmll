@@ -1,0 +1,1718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BassCast SA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+:root{
+  --mist:#EDF1EF;
+  --paper:#F7F9F8;
+  --ink:#12262E;
+  --depth:#1D4E5C;
+  --reed:#6F8F6A;
+  --gold:#E3A72F;
+  --line:#C9D4D1;
+  --muted:#4F646B;
+  --on-ink-muted:#A9BEC4;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"Hanken Grotesk",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--mist);color:var(--ink);font:400 16px/1.5 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px}
+h1,h2,h3,p,dl,dd,ul{margin:0}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* top */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0 10px}
+.brand{display:flex;align-items:center;gap:10px;font:800 1.35rem/1 var(--display);letter-spacing:-.02em}
+.brand svg{width:34px;height:22px;display:block}
+.clock{font-size:.82rem;color:var(--muted);text-align:right;line-height:1.3;font-variant-numeric:tabular-nums}
+
+/* location row */
+.where{display:flex;gap:8px;align-items:stretch;padding:4px 0 6px}
+.where label{position:absolute;left:-9999px}
+select{flex:1;min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-weight:500}
+.btn{background:var(--ink);color:var(--mist);border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.status{font-size:.85rem;color:var(--muted);min-height:1.4em;padding:2px 0}
+.status.error{color:#9C2A1A;font-weight:500}
+
+/* tabs */
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);margin:6px 0 20px}
+.tab{background:none;border:0;padding:10px 0 11px;font:700 1rem var(--display);color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--gold)}
+
+/* hero */
+.hero{position:relative;overflow:hidden;background:var(--ink);color:var(--mist);border-radius:20px;padding:26px 22px 22px}
+.hero svg.contours{position:absolute;right:-60px;bottom:-70px;width:420px;height:320px;opacity:.28;pointer-events:none}
+.hero svg.contours *{fill:none;stroke:var(--mist);stroke-width:1;vector-effect:non-scaling-stroke}
+.hero>*:not(svg){position:relative}
+.place{color:var(--on-ink-muted);font-size:.95rem}
+.hero h1{font:800 clamp(2.1rem,7.5vw,3.6rem)/1.02 var(--display);letter-spacing:-.025em;margin:6px 0 8px;max-width:14ch}
+.verdict{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.score .num{font:800 2.4rem/1 var(--display);color:var(--gold)}
+.score .of{color:var(--on-ink-muted);font-size:.9rem;margin-left:4px}
+#quality{font-weight:700;font-size:1.05rem}
+.reason{color:var(--on-ink-muted);max-width:52ch;margin-top:8px}
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 0;margin-top:22px;border-top:1px solid #2F4952;padding-top:16px}
+.facts div{padding-left:14px;border-left:1px solid #2F4952}
+.facts div:nth-child(odd){border-left:0;padding-left:0}
+.facts dt{font-size:.82rem;color:var(--on-ink-muted)}
+.facts dd{font:700 1.2rem var(--display)}
+.context{color:var(--on-ink-muted);font-size:.9rem;margin-top:16px}
+
+/* sections */
+.block{margin-top:30px}
+.block h2{font:800 1.3rem/1.2 var(--display);letter-spacing:-.015em}
+.hint{color:var(--muted);font-size:.9rem;margin:3px 0 14px}
+
+/* hour bars */
+.bars{display:flex;gap:4px;height:210px;align-items:stretch}
+.bar{flex:1;min-width:0;display:flex;flex-direction:column;background:none;border:0;padding:0;cursor:pointer}
+.track{flex:1;display:flex;align-items:flex-end;border-radius:6px 6px 0 0}
+.fill{width:100%;height:0;min-height:0;border-radius:6px 6px 2px 2px;background:var(--depth);background:color-mix(in oklab,var(--depth),var(--gold) calc(var(--t)*1%))}
+.bars.in .fill{height:var(--h);transition:height .7s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--i)*28ms)}
+.lbl{height:26px;font-size:.72rem;color:var(--muted);text-align:center;padding-top:5px;font-variant-numeric:tabular-nums}
+.bar.win .lbl{color:var(--ink);font-weight:700;box-shadow:inset 0 -4px var(--gold)}
+.bar[aria-pressed="true"] .fill{outline:2px solid var(--ink);outline-offset:1px}
+.detail{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px;min-height:3.2em}
+
+/* week */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.day{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 6px 10px;text-align:center;cursor:pointer;min-width:0}
+.day[aria-pressed="true"]{background:var(--ink);color:var(--mist);border-color:var(--ink)}
+.day .dn{font-size:.82rem;color:var(--muted)}
+.day[aria-pressed="true"] .dn,.day[aria-pressed="true"] .db{color:var(--on-ink-muted)}
+.day .ds{font:800 1.5rem/1.2 var(--display)}
+.day .mini{height:5px;border-radius:9px;background:var(--line);margin:4px 8px 6px;overflow:hidden}
+.day .mini i{display:block;height:100%;background:var(--depth);background:color-mix(in oklab,var(--depth),var(--gold) calc(var(--t)*1%))}
+.day .db{font-size:.75rem;color:var(--muted)}
+
+/* score guide */
+.gauge{position:relative;padding-top:40px;margin:0 8px}
+.segs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;height:16px}
+.seg{border-radius:99px;background:var(--depth);background:color-mix(in oklab,var(--depth),var(--gold) calc(var(--t)*1%));transition:opacity .4s}
+.gauge.live .seg:not(.on){opacity:.4}
+.pin{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;transition:left .9s cubic-bezier(.2,.8,.2,1)}
+.pin span{background:var(--ink);color:var(--mist);font:800 1rem/1 var(--display);padding:6px 11px;border-radius:9px;min-width:2.5rem;text-align:center}
+.pin::after{content:"";border:7px solid transparent;border-top-color:var(--ink);border-bottom:0}
+.labels{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:9px}
+.lab{text-align:center;font-size:.72rem;line-height:1.25;color:var(--muted);min-width:0}
+.lab strong{display:block;font:700 .85rem/1.25 var(--display);color:var(--ink)}
+.lab.on strong{text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:3px;text-underline-offset:4px}
+.gnote{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-height:3.2em}
+
+/* split */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.factor{margin:12px 0}
+.factor .row{display:flex;justify-content:space-between;font-weight:500;font-size:.95rem}
+.meter{height:6px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:4px}
+.meter span{display:block;height:100%;background:var(--depth)}
+.tips{padding-left:18px;margin-top:10px}
+.tips li{margin:8px 0;max-width:60ch}
+.fine{color:var(--muted);font-size:.82rem;margin-top:12px}
+
+/* map */
+#map{height:min(58vh,480px);min-height:320px;width:100%;border-radius:16px;border:1px solid var(--line);overflow:hidden;background:#dfe9e1;z-index:1}
+.pick{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+details{margin-top:16px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+summary{cursor:pointer;font-weight:700}
+.coords{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:10px;align-items:end}
+label.f{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+input{width:100%;min-width:0;background:var(--mist);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+
+/* map styling and spots */
+.pin-icon{background:none;border:0;filter:drop-shadow(0 2px 3px rgba(18,38,46,.35))}
+.leaflet-container{font-family:var(--body)}
+.leaflet-bar{border:0!important;box-shadow:0 2px 10px rgba(18,38,46,.2)!important;border-radius:12px!important;overflow:hidden}
+.leaflet-bar a,.leaflet-bar a:hover{background:var(--paper);color:var(--ink);border-bottom:1px solid var(--line)}
+.leaflet-control-layers{border:0!important;border-radius:12px!important;box-shadow:0 2px 10px rgba(18,38,46,.2)!important;background:var(--paper);color:var(--ink);font:500 .9rem var(--body)}
+.leaflet-control-attribution{font-size:.65rem}
+.leaflet-popup-content-wrapper{border-radius:14px;background:var(--paper);color:var(--ink)}
+.leaflet-popup-tip{background:var(--paper)}
+.leaflet-popup-content{font:400 .9rem/1.4 var(--body);margin:12px 14px}
+.spotpop .fine{margin:2px 0 8px}
+.spotpopbtns{display:flex;gap:8px}
+.spotpopbtns button{background:var(--ink);color:var(--mist);border:0;border-radius:8px;padding:6px 11px;font:700 .82rem var(--body);cursor:pointer}
+.spotpopbtns button+button{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.maplegend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:10px;align-items:center}
+.maplegend span.k{display:inline-flex;align-items:center;gap:6px}
+.maplegend i{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px solid var(--paper);box-shadow:0 0 0 1px var(--line)}
+.pickbtns{display:flex;gap:8px;flex-wrap:wrap}
+.spotform{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px}
+.spotformrow{display:grid;grid-template-columns:1fr auto auto;gap:8px}
+.spotrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.spotrow.editing{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.spotname{background:none;border:0;padding:0;text-align:left;cursor:pointer;display:block;min-width:0;flex:1}
+.spotname strong{display:block;font:700 1rem var(--display);overflow-wrap:anywhere}
+.spotname span{font-size:.82rem;color:var(--muted)}
+.spotbtns{display:flex;gap:14px}
+.link{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer;font-weight:500}
+.sr{position:absolute;left:-9999px}
+
+/* log */
+.factors{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 32px;margin-top:4px}
+.advice{display:grid;grid-template-columns:1fr 1fr;gap:6px 36px}
+.advice .sum{grid-column:1/-1;font:500 1.15rem/1.4 var(--display);max-width:60ch;margin-bottom:6px}
+.advice .adv{min-width:0}
+.advice h3{font:800 1.05rem/1.2 var(--display);margin:18px 0 4px;letter-spacing:-.01em}
+.advice ul{padding-left:18px;margin:6px 0}
+.advice li{margin:7px 0;max-width:62ch}
+.advice .adv.wide{grid-column:1/-1}
+.loggrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;align-items:end;margin-top:14px}
+.loggrid .span3{grid-column:span 3}
+.forecastnote{font-size:.9rem;color:var(--muted);margin:10px 0 2px}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:1px 9px;font-size:.8rem;background:var(--paper);white-space:nowrap}
+.chip.none{color:var(--muted)}
+.rm{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0 0 0 8px;font-size:.85rem}
+.logrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bands{margin:22px 0 6px}
+.bandrow{display:grid;grid-template-columns:minmax(150px,1.4fr) 1fr 1fr;gap:4px 14px;align-items:center;margin:12px 0}
+.bandrow .meter{grid-column:1/-1}
+.bandrow .meter span{background:var(--gold)}
+.logrow{padding:9px 0;border-bottom:1px solid var(--line)}
+
+.foot{color:var(--muted);font-size:.8rem;margin:34px 0 28px;max-width:70ch}
+
+@media(max-width:720px){
+  .moonstrip{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .mooncell .mn{font-size:.65rem}
+
+  .split{grid-template-columns:1fr}
+  .week{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .coords{grid-template-columns:1fr 1fr}
+  .loggrid{grid-template-columns:1fr 1fr}
+  .loggrid .span3,.loggrid .btn{grid-column:1/-1}
+  .advice{grid-template-columns:1fr}
+  .spotformrow,.spotrow.editing{grid-template-columns:1fr 1fr}
+  .spotformrow input,.spotrow.editing input{grid-column:1/-1}
+  .lab strong{font-size:.78rem}
+  .lab{font-size:.68rem}
+  .bars{height:180px;gap:2px}
+  .lbl:not(.show){color:transparent}
+  .bar.win .lbl{color:var(--ink)}
+}
+@media(min-width:721px){
+  .facts{grid-template-columns:repeat(4,1fr)}
+  .facts div:nth-child(odd){border-left:1px solid #2F4952;padding-left:14px}
+  .facts div:first-child{border-left:0;padding-left:0}
+  .hero{padding:34px 34px 28px}
+}
+@media(prefers-reduced-motion:reduce){.bars.in .fill,.pin,.seg{transition:none}}
+
+/* moon phases */
+.moonstrip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;margin-top:4px}
+.mooncell{text-align:center;padding:8px 2px 6px;border-radius:12px;border:1px solid transparent;min-width:0}
+.mooncell.on{background:var(--paper);border-color:var(--line);box-shadow:0 0 0 1px var(--gold)}
+.mooncell svg{width:28px;height:28px;display:block;margin:0 auto 4px}
+.mooncell .mn{font-size:.68rem;line-height:1.2;color:var(--muted);min-height:2.4em}
+.mooncell.on .mn{color:var(--ink);font-weight:600}
+.mooncell .dot{width:6px;height:6px;border-radius:50%;background:transparent;margin:4px auto 0}
+.mooncell.on .dot{background:var(--gold)}
+.bestday{margin:6px 0 2px;font:700 1rem var(--display);color:var(--gold)}
+.windcall{font-size:.92rem;margin-top:8px;color:var(--mist)}
+.solunar{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px}
+.sol{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.sol b{display:block;font:700 .95rem var(--display)}
+.sol span{font-size:.82rem;color:var(--muted)}
+.sol.major{box-shadow:inset 3px 0 0 var(--gold)}
+.status.offline{color:var(--depth);font-weight:600}
+.moonmeta{font-size:.9rem;color:var(--muted);margin-top:10px}
+
+/* pressure gauge */
+.pgauge{margin-top:6px}
+.pbar{position:relative;height:18px;border-radius:99px;background:linear-gradient(90deg,#1D4E5C 0%,#6F8F6A 45%,#C9D4D1 55%,#E3A72F 100%);border:1px solid var(--line)}
+.pneedle{position:absolute;top:-6px;transform:translateX(-50%);width:3px;height:30px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px var(--paper);transition:left .8s cubic-bezier(.2,.8,.2,1)}
+.pneedle::after{content:"";position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink)}
+.plabels{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:10px;gap:8px}
+.plabels strong{display:block;font:700 .85rem/1.2 var(--display);color:var(--ink)}
+.ptrend{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.ptrend .val{font:800 1.35rem/1 var(--display)}
+.ptrend .tag{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:.9rem}
+.ptrend .tag i{display:inline-block;width:0;height:0;border-style:solid}
+.ptrend .tag.fall i{border-width:8px 5px 0 5px;border-color:var(--depth) transparent transparent transparent}
+.ptrend .tag.rise i{border-width:0 5px 8px 5px;border-color:transparent transparent var(--gold) transparent}
+.ptrend .tag.steady i{width:10px;height:3px;background:var(--muted);border:0;border-radius:2px}
+.pnote{font-size:.9rem;color:var(--muted);margin-top:6px;max-width:62ch}
+
+/* ===== PREMIUM LAYER ===== */
+:root{--glass:rgba(255,255,255,.62);--shadow-soft:0 1px 2px rgba(18,38,46,.04),0 12px 32px -12px rgba(18,38,46,.18);--shadow-lift:0 2px 4px rgba(18,38,46,.06),0 24px 48px -16px rgba(18,38,46,.28);--ease:cubic-bezier(.2,.8,.2,1)}
+body{background:radial-gradient(1200px 600px at 85% -10%,rgba(227,167,47,.14),transparent 60%),radial-gradient(900px 500px at -10% 10%,rgba(29,78,92,.16),transparent 60%),linear-gradient(180deg,#F4F7F6,#E6ECEA);background-attachment:fixed;min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E")}
+.wrap{position:relative;z-index:1;max-width:1040px}
+.top{position:sticky;top:10px;z-index:50;margin-top:10px;padding:12px 18px;border-radius:18px;background:var(--glass);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border:1px solid rgba(255,255,255,.7);box-shadow:var(--shadow-soft);animation:dropIn .8s var(--ease) both}
+.brand svg{animation:swim 4s ease-in-out infinite}
+.brand{background:linear-gradient(90deg,var(--ink),var(--depth));-webkit-background-clip:text;background-clip:text}
+.where{margin-top:14px;animation:fadeUp .7s .1s var(--ease) both}
+select,input{transition:border-color .25s,box-shadow .25s,background .25s;box-shadow:var(--shadow-soft)}
+select:hover,input:hover{border-color:var(--depth)}
+select:focus,input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(227,167,47,.22)}
+.btn{position:relative;overflow:hidden;transition:transform .2s var(--ease),box-shadow .25s,background .25s;background:linear-gradient(135deg,var(--ink),var(--depth));box-shadow:0 8px 20px -8px rgba(18,38,46,.55)}
+.btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 14px 28px -10px rgba(18,38,46,.6)}
+.btn:not(:disabled):active{transform:translateY(0) scale(.97)}
+.btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);transition:transform .7s var(--ease)}
+.btn:not(:disabled):hover::after{transform:translateX(120%)}
+.btn.ghost{background:var(--glass);backdrop-filter:blur(8px);box-shadow:var(--shadow-soft);border-color:rgba(18,38,46,.25)}
+.btn.ghost::after{background:linear-gradient(110deg,transparent 30%,rgba(227,167,47,.25) 50%,transparent 70%)}
+.status{transition:color .3s}
+.tabs{position:relative;display:inline-flex;gap:4px;padding:5px;border:1px solid rgba(255,255,255,.7);border-radius:14px;background:var(--glass);backdrop-filter:blur(12px);box-shadow:var(--shadow-soft);animation:fadeUp .7s .18s var(--ease) both}
+.tab{position:relative;z-index:1;padding:9px 18px;border:0;margin:0;border-radius:10px;transition:color .3s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--mist)}
+.tabpill{position:absolute;z-index:0;top:5px;bottom:5px;border-radius:10px;background:linear-gradient(135deg,var(--ink),var(--depth));box-shadow:0 6px 16px -6px rgba(18,38,46,.6);transition:left .45s var(--ease),width .45s var(--ease)}
+[role=tabpanel]:not([hidden]){animation:panelIn .55s var(--ease) both}
+.hero{border-radius:28px;background:radial-gradient(600px 300px at 90% 110%,rgba(227,167,47,.28),transparent 60%),radial-gradient(500px 300px at 0% 0%,rgba(111,143,106,.25),transparent 60%),linear-gradient(145deg,#0E1F26,#163C47 60%,#1D4E5C);box-shadow:0 30px 60px -24px rgba(18,38,46,.6),inset 0 1px 0 rgba(255,255,255,.08);animation:heroIn 1s .2s var(--ease) both;isolation:isolate}
+.hero::before{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent,rgba(227,167,47,.12),transparent 30%);animation:spin 18s linear infinite;z-index:-1;pointer-events:none}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:60px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60' preserveAspectRatio='none'%3E%3Cpath d='M0 30 Q150 0 300 30 T600 30 T900 30 T1200 30 V60 H0Z' fill='rgba(237,241,239,0.06)'/%3E%3C/svg%3E") repeat-x;background-size:600px 60px;animation:wave 9s linear infinite;pointer-events:none;z-index:-1}
+.hero svg.contours{opacity:.35;animation:breathe 8s ease-in-out infinite;transform-origin:70% 70%}
+.hero h1{background:linear-gradient(180deg,#fff,#C9D8DC);-webkit-background-clip:text;background-clip:text;color:transparent}
+.score .num{display:inline-block;font-size:3rem;background:linear-gradient(180deg,#FFD27A,#E3A72F);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 18px rgba(227,167,47,.45))}
+.score .num.pop{animation:pop .6s var(--ease)}
+.facts{border-top-color:rgba(255,255,255,.1)}
+.facts div{border-left-color:rgba(255,255,255,.1)!important;transition:transform .3s var(--ease)}
+.facts div:hover{transform:translateY(-3px)}
+.block{margin-top:22px;padding:24px 22px;border-radius:22px;background:var(--glass);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);border:1px solid rgba(255,255,255,.75);box-shadow:var(--shadow-soft);transition:box-shadow .4s,transform .4s var(--ease)}
+.block:hover{box-shadow:var(--shadow-lift)}
+.block h2{display:flex;align-items:center;gap:10px}
+.block h2::before{content:"";width:8px;height:22px;border-radius:4px;background:linear-gradient(180deg,var(--gold),#C9821A);box-shadow:0 0 12px rgba(227,167,47,.5)}
+.reveal{opacity:0;transform:translateY(28px) scale(.985);filter:blur(4px);transition:opacity .8s var(--ease),transform .8s var(--ease),filter .8s var(--ease)}
+.reveal.shown{opacity:1;transform:none;filter:none}
+.fill{transition:filter .25s}
+.bar:hover .fill{filter:brightness(1.18) saturate(1.2);box-shadow:0 -6px 18px -4px rgba(227,167,47,.55)}
+.bar.win .fill{box-shadow:0 0 18px rgba(227,167,47,.5)}
+.detail,.sol,.ptrend,.spotform,details{background:rgba(255,255,255,.7);border-color:rgba(201,212,209,.7);box-shadow:var(--shadow-soft)}
+.day,.sol,.mooncell{transition:transform .3s var(--ease),box-shadow .3s,background .3s}
+.day:hover,.sol:hover{transform:translateY(-4px);box-shadow:var(--shadow-lift)}
+.day[aria-pressed="true"]{background:linear-gradient(160deg,var(--ink),var(--depth));box-shadow:0 14px 28px -12px rgba(18,38,46,.6);transform:translateY(-3px)}
+.mooncell:hover{transform:translateY(-3px) rotate(-2deg)}
+.mooncell.on svg{animation:glow 2.6s ease-in-out infinite}
+.pneedle{transition:left 1.2s var(--ease)!important}
+.pbar{box-shadow:inset 0 2px 6px rgba(0,0,0,.15)}
+#map{border-radius:20px;box-shadow:var(--shadow-lift)}
+.chip{transition:transform .2s}.chip:hover{transform:scale(1.06)}
+.ripple{position:absolute;border-radius:50%;transform:scale(0);background:rgba(255,255,255,.45);animation:ripple .6s linear;pointer-events:none}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes dropIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
+@keyframes heroIn{from{opacity:0;transform:translateY(30px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes panelIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes wave{to{background-position-x:600px}}
+@keyframes breathe{50%{transform:scale(1.06) rotate(3deg)}}
+@keyframes swim{50%{transform:translateX(3px) rotate(-3deg)}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@keyframes glow{50%{filter:drop-shadow(0 0 8px rgba(227,167,47,.8))}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none;filter:none}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 64 40" fill="none" aria-hidden="true">
+        <path d="M2 22c6-10 16-16 28-16 8 0 14 3 20 8 3 2 6 3 9 2-2 3-5 5-9 6-1 4-4 7-8 9-5 2-11 1-15-2-3 3-7 4-11 3 2-3 3-7 2-10-5 1-10 1-16 0z" fill="#12262E"/>
+        <circle cx="48" cy="16" r="2.4" fill="#E3A72F"/>
+      </svg>
+      BassCast SA
+    </div>
+    <div class="clock"><div id="liveDate">&nbsp;</div><div id="liveTime">&nbsp;</div></div>
+  </header>
+
+  <div class="where">
+    <label for="water">Fishing spot</label>
+    <select id="water">
+      <option value="-34.05,19.32,Theewaterskloof Dam">Theewaterskloof Dam</option>
+      <option value="-32.18,18.95,Clanwilliam Dam">Clanwilliam Dam</option>
+      <option value="-33.78,19.45,Brandvlei Dam">Brandvlei Dam</option>
+      <option value="-33.79,19.56,Kwaggaskloof Dam">Kwaggaskloof Dam</option>
+      <option value="-33.85,19.03,Wemmershoek Dam">Wemmershoek Dam</option>
+      <option value="-25.63,28.36,Roodeplaat Dam">Roodeplaat Dam</option>
+      <option value="-25.73,27.86,Hartbeespoort Dam">Hartbeespoort Dam</option>
+      <option value="-25.82,28.75,Bronkhorstspruit Dam">Bronkhorstspruit Dam</option>
+      <option value="-25.19,28.58,Rust de Winter Dam">Rust de Winter Dam</option>
+      <option value="-29.45,30.45,Albert Falls Dam">Albert Falls Dam</option>
+      <option value="-29.67,30.88,Inanda Dam">Inanda Dam</option>
+      <option value="-29.57,30.76,Nagle Dam">Nagle Dam</option>
+      <option value="-29.50,30.20,Midmar Dam">Midmar Dam</option>
+      <option value="custom">Spot from the map</option>
+    </select>
+    <button class="btn ghost" id="load" type="button">Refresh</button>
+  </div>
+  <div id="status" class="status" role="status">Loading the forecast.</div>
+
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tabbtn-forecast" aria-controls="tab-forecast" aria-selected="true" type="button">Forecast</button>
+    <button class="tab" role="tab" id="tabbtn-map" aria-controls="tab-map" aria-selected="false" tabindex="-1" type="button">Map</button>
+    <button class="tab" role="tab" id="tabbtn-log" aria-controls="tab-log" aria-selected="false" tabindex="-1" type="button">Catch log</button>
+  </div>
+
+  <input type="hidden" id="forecastDay">
+
+  <section id="tab-forecast" role="tabpanel" aria-labelledby="tabbtn-forecast">
+    <div class="hero">
+      <svg class="contours" viewBox="0 0 240 190" aria-hidden="true">
+        <defs><path id="blob" d="M120 20c40-10 90 10 100 50s-10 80-50 95-100 5-120-35S80 30 120 20z"/></defs>
+        <use href="#blob" transform="translate(120 95) scale(1) translate(-120 -95)"/>
+        <use href="#blob" transform="translate(120 95) scale(.84) translate(-120 -95)"/>
+        <use href="#blob" transform="translate(120 95) scale(.68) translate(-120 -95)"/>
+        <use href="#blob" transform="translate(120 95) scale(.52) translate(-120 -95)"/>
+        <use href="#blob" transform="translate(120 95) scale(.36) translate(-120 -95)"/>
+        <use href="#blob" transform="translate(120 95) scale(.2) translate(-120 -95)"/>
+      </svg>
+      <p class="place" id="placeTag">Choose a spot</p>
+      <h1 id="bestWindow">Checking conditions</h1>
+      <p class="bestday" id="bestDay"></p>
+      <div class="verdict">
+        <span class="score" id="dailyScore"><span class="num">&ndash;</span><span class="of">out of 100</span></span>
+        <span id="quality">Waiting for the forecast</span>
+      </div>
+      <p class="reason" id="windowReason">The best hours appear here once the forecast loads.</p>
+      <dl class="facts">
+        <div><dt>Sunrise</dt><dd id="sunrise">&ndash;</dd></div>
+        <div><dt>Sunset</dt><dd id="sunset">&ndash;</dd></div>
+        <div><dt>Pressure</dt><dd id="pressure">&ndash;</dd></div>
+        <div><dt>Wind</dt><dd id="wind">&ndash;</dd></div>
+      </dl>
+      <p class="windcall" id="windCall"></p>
+      <p class="context"><span id="season"></span> <span id="moon"></span></p>
+    </div>
+
+    <section class="block" aria-labelledby="guideTitle">
+      <h2 id="guideTitle">Score guide</h2>
+      <p class="hint">Scores run from 0 to 100. The pin marks the day score, which is the average of every hour.</p>
+      <div class="gauge" id="gauge"></div>
+      <p class="gnote" id="gaugeNote" aria-live="polite">The guide fills in once the forecast loads.</p>
+    </section>
+
+    <section class="block" aria-labelledby="moonTitle">
+      <h2 id="moonTitle">Moon phase</h2>
+      <p class="hint">Many anglers treat new and full moons as stronger feeding windows, especially at first and last light. Use it as a tie-breaker, not a rule.</p>
+      <div id="moonStrip" class="moonstrip" role="list" aria-label="Moon phases"></div>
+      <p class="moonmeta" id="moonMeta">Moon phase appears once the forecast loads.</p>
+      <div class="solunar" id="solunar" aria-label="Solunar feeding windows"></div>
+      <p class="hint" id="solunarNote" style="margin-top:8px"></p>
+    </section>
+
+    <section class="block" aria-labelledby="pressureTitle">
+      <h2 id="pressureTitle">Barometric pressure</h2>
+      <p class="hint">Bass often feed more actively when pressure is falling (ahead of a front) and tighten to cover when it rises sharply after a front.</p>
+      <div class="pgauge">
+        <div class="pbar" id="pressureBar" role="img" aria-label="Barometric pressure gauge">
+          <div class="pneedle" id="pressureNeedle" style="left:50%"></div>
+        </div>
+        <div class="plabels">
+          <div><strong>Lower</strong>Falling · more active</div>
+          <div style="text-align:center"><strong>Steady</strong>Normal patterns</div>
+          <div style="text-align:right"><strong>Higher</strong>Rising · tighter to cover</div>
+        </div>
+        <div class="ptrend">
+          <span class="val" id="pressureVal">&ndash; hPa</span>
+          <span class="tag steady" id="pressureTag"><i></i> Waiting</span>
+        </div>
+        <p class="pnote" id="pressureNote">The gauge updates with the forecast.</p>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Hour by hour</h2>
+      <p class="hint">Bars use the same colours as the score guide, and taller means better. The gold underline is your best window. Tap a bar for its details.</p>
+      <div id="hours" class="bars" role="group" aria-label="Hourly fishing scores"></div>
+      <p class="detail" id="hourDetail" aria-live="polite">Select an hour to see its conditions.</p>
+    </section>
+
+    <section class="block">
+      <h2>This week</h2>
+      <p class="hint">Tap a day to switch the forecast to it.</p>
+      <div id="week" class="week"></div>
+    </section>
+
+    <section class="block">
+      <h2>What drives the score</h2>
+      <p class="hint">For the best hour of the day.</p>
+      <div id="factors" class="factors"></div>
+    </section>
+
+    <section class="block">
+      <h2>How to fish it</h2>
+      <p class="hint" id="adviceHint">Advice adjusts to the dam's region, the season, light, wind and pressure.</p>
+      <div id="tips" class="advice"><p class="sum">Advice appears once the forecast loads.</p></div>
+      <p class="fine">General guidance from common angling experience, not a guarantee. Water temperature, clarity, level, forage and the dam's own structure can change what works, so trust what you see on the day.</p>
+    </section>
+  </section>
+
+  <section id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map" hidden>
+    <h2 style="font:800 1.3rem var(--display)">Pick a spot</h2>
+    <p class="hint">Tap a dam pin to select it. Tap anywhere else to drop a new pin, then name it and save it as one of your own spots.</p>
+    <div id="map" role="application" aria-label="Map of South African bass fishing dams and your saved spots"></div>
+    <div class="maplegend">
+      <span class="k"><i style="background:#12262E"></i>Dams</span>
+      <span class="k"><i style="background:#E3A72F"></i>My spots</span>
+      <span class="k"><i style="background:#1D4E5C"></i>New pin, not saved yet</span>
+    </div>
+    <div class="pick">
+      <span id="mapPick">No spot selected yet.</span>
+      <div class="pickbtns">
+        <button class="btn ghost" id="locateMe" type="button">Use my location</button>
+        <button class="btn" id="useMapLocation" type="button" disabled>Show forecast for this spot</button>
+      </div>
+    </div>
+    <form id="spotForm" class="spotform" hidden>
+      <label class="f" for="spotName">Name this spot</label>
+      <div class="spotformrow">
+        <input id="spotName" maxlength="60" autocomplete="off" placeholder="Rocky point past the jetty">
+        <button class="btn" type="submit">Save spot</button>
+        <button class="btn ghost" id="spotCancel" type="button">Cancel</button>
+      </div>
+      <p class="fine">Drag the pin to fine-tune its position before you save.</p>
+    </form>
+    <p class="status" id="spotMsg" role="status"></p>
+
+    <section class="block" style="margin-top:18px">
+      <h2>My spots</h2>
+      <p class="hint">Saved on this device. They also appear in the spot menu at the top of the page.</p>
+      <div id="mySpots"></div>
+    </section>
+
+    <details>
+      <summary>Enter coordinates instead</summary>
+      <div class="coords">
+        <div><label class="f" for="lat">Latitude</label><input id="lat" type="number" step="0.0001" value="-34.05"></div>
+        <div><label class="f" for="lon">Longitude</label><input id="lon" type="number" step="0.0001" value="19.32"></div>
+        <button class="btn" id="applyCoords" type="button">Drop a pin here</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="tab-log" role="tabpanel" aria-labelledby="tabbtn-log" hidden>
+    <h2 style="font:800 1.3rem var(--display)">Catch log</h2>
+    <p class="hint">Record each session to compare forecasts with real results. Logs stay in this browser on this device.</p>
+    <div class="loggrid">
+      <div><label class="f" for="resultDate">Date</label><input id="resultDate" type="date"></div>
+      <div><label class="f" for="logSpot">Spot</label><input id="logSpot" placeholder="Dam name"></div>
+      <div><label class="f" for="resultCount">Bass caught</label><input id="resultCount" type="number" min="0" value="0"></div>
+      <div><label class="f" for="resultHours">Hours fished</label><input id="resultHours" type="number" min="0" step="0.5" placeholder="Optional"></div>
+      <div class="span3"><label class="f" for="lure">Lure or notes</label><input id="lure" placeholder="Green pumpkin worm on a Texas rig, windy point"></div>
+      <button class="btn" id="saveCatch" type="button">Save session</button>
+    </div>
+    <p class="forecastnote" id="logForecast"></p>
+    <div id="logStatus" class="status" role="status"></div>
+    <div id="logSummary" class="bands"></div>
+    <div id="logs"></div>
+  </section>
+
+  <p class="foot">Weather from Open-Meteo. A personal, non-commercial prototype: scores are experimental and not a promise of fish. Check local weather and water safety before you go.</p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const $ = id => document.getElementById(id);
+
+function seasonFor(d) {
+  const m = d.getMonth() + 1;
+  return [12, 1, 2].includes(m) ? 'Summer'
+    : [3, 4, 5].includes(m) ? 'Autumn'
+    : [6, 7, 8].includes(m) ? 'Winter'
+    : 'Spring';
+}
+
+const MOON_PHASES = [
+  { key: 'New moon', short: 'New' },
+  { key: 'Waxing crescent', short: 'Waxing<br>crescent' },
+  { key: 'First quarter', short: 'First<br>quarter' },
+  { key: 'Waxing gibbous', short: 'Waxing<br>gibbous' },
+  { key: 'Full moon', short: 'Full' },
+  { key: 'Waning gibbous', short: 'Waning<br>gibbous' },
+  { key: 'Last quarter', short: 'Last<br>quarter' },
+  { key: 'Waning crescent', short: 'Waning<br>crescent' }
+];
+
+function moonInfo(d) {
+  const syn = 29.530588853;
+  const known = Date.UTC(2000, 0, 6, 18, 14);
+  const days = (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - known) / 86400000;
+  const age = ((days % syn) + syn) % syn;
+  const illum = Math.round((1 - Math.cos(2 * Math.PI * age / syn)) / 2 * 100);
+  let phase = 'Waning crescent';
+  if (age < 1.85) phase = 'New moon';
+  else if (age < 5.53) phase = 'Waxing crescent';
+  else if (age < 9.22) phase = 'First quarter';
+  else if (age < 12.91) phase = 'Waxing gibbous';
+  else if (age < 16.61) phase = 'Full moon';
+  else if (age < 20.3) phase = 'Waning gibbous';
+  else if (age < 23.99) phase = 'Last quarter';
+  let index = MOON_PHASES.findIndex(function(p){ return p.key === phase; });
+  if (index < 0) index = 0;
+  return { phase: phase, illum: illum, age: age, index: index };
+}
+
+function moonIconSvg(phase) {
+  var ink = '#12262E';
+  var mist = '#EDF1EF';
+  var base = '<circle cx="14" cy="14" r="11" fill="' + ink + '"/>';
+  var parts = {
+    'New moon': '',
+    'Waxing crescent': '<path d="M14 3a11 11 0 0 1 0 22 7 11 0 0 0 0-22z" fill="' + mist + '"/>',
+    'First quarter': '<path d="M14 3a11 11 0 0 1 0 22z" fill="' + mist + '"/>',
+    'Waxing gibbous': '<path d="M14 3a11 11 0 1 1 0 22 4 11 0 0 0 0-22z" fill="' + mist + '"/>',
+    'Full moon': '<circle cx="14" cy="14" r="11" fill="' + mist + '"/><circle cx="14" cy="14" r="11" fill="none" stroke="' + ink + '" stroke-width="1.5"/>',
+    'Waning gibbous': '<path d="M14 3a11 11 0 1 0 0 22 4 11 0 0 1 0-22z" fill="' + mist + '"/>',
+    'Last quarter': '<path d="M14 3a11 11 0 0 0 0 22z" fill="' + mist + '"/>',
+    'Waning crescent': '<path d="M14 3a11 11 0 0 0 0 22 7 11 0 0 1 0-22z" fill="' + mist + '"/>'
+  };
+  return '<svg viewBox="0 0 28 28" aria-hidden="true">' + base + (parts[phase] || '') + '</svg>';
+}
+
+function renderMoonStrip(moon) {
+  var box = document.getElementById('moonStrip');
+  var meta = document.getElementById('moonMeta');
+  if (!box || !moon) return;
+  box.innerHTML = MOON_PHASES.map(function(p, i) {
+    var on = i === moon.index;
+    return '<div class="mooncell' + (on ? ' on' : '') + '" role="listitem"' + (on ? ' aria-current="true"' : '') + '>' +
+      moonIconSvg(p.key) +
+      '<div class="mn">' + p.short + '</div>' +
+      '<div class="dot" aria-hidden="true"></div></div>';
+  }).join('');
+  if (meta) meta.textContent = moon.phase + ', ' + moon.illum + '% lit.';
+}
+
+function updatePressureGauge(hPa, deltaP) {
+  var needle = document.getElementById('pressureNeedle');
+  var valEl = document.getElementById('pressureVal');
+  var tag = document.getElementById('pressureTag');
+  var note = document.getElementById('pressureNote');
+  var bar = document.getElementById('pressureBar');
+  if (!needle || !valEl) {
+    console.warn('pressure gauge elements missing');
+    return;
+  }
+  var lo = 990, hi = 1035;
+  var p = Number(hPa);
+  if (!Number.isFinite(p)) p = 1013;
+  if (p < lo) p = lo;
+  if (p > hi) p = hi;
+  var pct = ((p - lo) / (hi - lo)) * 100;
+  if (pct < 4) pct = 4;
+  if (pct > 96) pct = 96;
+  needle.style.left = pct + '%';
+  valEl.textContent = Math.round(Number(hPa) || p) + ' hPa';
+  var kind = 'steady', label = 'Steady';
+  var text = 'Pressure is fairly steady. Fish should follow normal light and temperature patterns.';
+  if (deltaP != null && Number.isFinite(deltaP)) {
+    if (deltaP <= -4) {
+      kind = 'fall'; label = 'Falling fast';
+      text = 'Pressure is dropping quickly (often ahead of a front). Bass frequently feed more actively — cover water with reaction baits and expect changing conditions.';
+    } else if (deltaP <= -1.5) {
+      kind = 'fall'; label = 'Falling';
+      text = 'Pressure is falling. Many anglers see a better bite with moving baits along banks and cover.';
+    } else if (deltaP >= 4) {
+      kind = 'rise'; label = 'Rising fast';
+      text = 'Pressure is climbing sharply (common after a front). Fish often tighten to cover and get fussy — slow down, downsize and fish close to structure.';
+    } else if (deltaP >= 1.5) {
+      kind = 'rise'; label = 'Rising';
+      text = 'Pressure is rising. The bite may be tougher at first and improve as conditions settle.';
+    } else {
+      text = 'Pressure change is small. Rely more on light levels, wind and the best window than on the barometer.';
+    }
+  } else {
+    text = 'Not enough hourly data to measure the recent trend. Absolute pressure is shown; trend advice needs a few hours of history.';
+  }
+  if (tag) {
+    tag.className = 'tag ' + kind;
+    tag.innerHTML = '<i></i> ' + label;
+  }
+  if (note) note.textContent = text;
+  if (bar) bar.setAttribute('aria-label', 'Barometric pressure ' + Math.round(Number(hPa) || p) + ' hectopascals, trend ' + label.toLowerCase() + '.');
+}
+
+
+const clamp = (x, a = 0, b = 100) => Math.max(a, Math.min(b, Number.isFinite(x) ? x : a));
+const COMPASS=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function compass(deg){ return COMPASS[Math.round(((deg%360)+360)%360/22.5)%16]; }
+const BANK={N:'north',NNE:'north-northeast',NE:'northeast',ENE:'east-northeast',E:'east',ESE:'east-southeast',SE:'southeast',SSE:'south-southeast',S:'south',SSW:'south-southwest',SW:'southwest',WSW:'west-southwest',W:'west',WNW:'west-northwest',NW:'northwest',NNW:'north-northwest'};
+function windCallFor(speed, deg){
+  if (!Number.isFinite(deg)) return '';
+  const from = compass(deg), to = BANK[compass(deg + 180)];
+  if (speed < 5) return `Wind ${from}, barely moving. No bank is really windblown, so fish shade and cover.`;
+  if (speed > 25) return `Strong ${from} wind piles onto the ${to} bank. Fish it only from shore; boats should hide in the lee on the ${BANK[from]} side.`;
+  return `${from} wind pushes bait onto the ${to} bank. Start on the ${to} shore and wind-blown points.`;
+}
+function clockStr(h){ h=((h%24)+24)%24; const m=Math.round(h*60)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function solunarFor(moon, sunrise, sunset){
+  const toH = t => { const m = String(t||'').slice(11,16).match(/^(\d\d):(\d\d)$/); return m ? +m[1] + +m[2]/60 : NaN; };
+  let noon = (toH(sunrise) + toH(sunset)) / 2; if (!Number.isFinite(noon)) noon = 12;
+  const transit = noon + moon.age / 29.530588853 * 24.84;
+  const under = transit + 12.42, rise = transit - 6.21, set = transit + 6.21;
+  const w = (c, half) => ({ c: ((c%24)+24)%24, txt: clockStr(c-half)+' to '+clockStr(c+half) });
+  return [
+    { kind:'major', name:'Major: moon overhead', ...w(transit,1) },
+    { kind:'major', name:'Major: moon underfoot', ...w(under,1) },
+    { kind:'minor', name:'Minor: moonrise', ...w(rise,.5) },
+    { kind:'minor', name:'Minor: moonset', ...w(set,.5) }
+  ].sort((a,b)=>a.c-b.c);
+}
+function renderSolunar(moon, sunrise, sunset){
+  const box=$('solunar'); if(!box) return;
+  box.innerHTML = solunarFor(moon, sunrise, sunset).map(p=>`<div class="sol ${p.kind}"><b>${p.txt}</b><span>${p.name}</span></div>`).join('');
+  $('solunarNote').textContent='Solunar windows are estimated from the moon phase and local sun times, accurate to roughly half an hour. Gold edge marks the two major periods.';
+}
+const CACHE_KEY='basscastForecast';
+function saveForecast(lat, lon, data){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify({lat,lon,savedAt:Date.now(),data})); }catch{} }
+function cachedForecast(lat, lon){
+  try{ const c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
+    if(c && c.data && Math.abs(c.lat-lat)<0.02 && Math.abs(c.lon-lon)<0.02) return c; }catch{}
+  return null;
+}
+function time(s) { return s ? String(s).slice(11, 16) : '–'; }
+function safeNum(n, fallback = 0) { const v = Number(n); return Number.isFinite(v) ? v : fallback; }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+const hourOf = t => +String(t).slice(11, 13);
+const hh = n => String(n).padStart(2, '0') + ':00';
+const heat = s => bandOf(safeNum(s)).t;
+
+function score(h, prev, season, sunrise, sunset) {
+  const temp = h.temperature_2m;
+  const cloud = h.cloud_cover ?? 50;
+  const wind = h.wind_speed_10m ?? 10;
+  const rain = h.precipitation_probability ?? 0;
+  const pressure = h.pressure_msl ?? 1013;
+
+  const tempS = temp == null ? 55 : clamp(100 - Math.abs(temp - 23) * 5, 25, 95);
+  const lightS = clamp(95 - Math.abs(cloud - 45) * 0.65, 35, 90);
+
+  const mins = x => {
+    if (!x) return null;
+    const parts = String(x).slice(0, 5).split(':');
+    if (parts.length < 2) return null;
+    const a = +parts[0], b = +parts[1];
+    return Number.isFinite(a) && Number.isFinite(b) ? a * 60 + b : null;
+  };
+
+  const cm = mins(time(h.time));
+  const sm = mins(time(sunrise));
+  const em = mins(time(sunset));
+  let low = 55;
+  if (cm != null && sm != null && em != null) {
+    low = clamp(100 - Math.min(Math.abs(cm - (sm + 45)), Math.abs(cm - (em - 60))) * 0.75, 25, 100);
+    if (cm > sm + 120 && cm < em - 150) low = Math.max(45, low);
+  }
+
+  const windS = wind < 5 ? 55 : wind <= 18 ? 88 : wind <= 28 ? 68 : 35;
+  const rainS = rain < 20 ? 88 : rain < 50 ? 70 : rain < 75 ? 48 : 25;
+  let pressureS = 65;
+  if (prev != null && Number.isFinite(prev) && Number.isFinite(pressure)) {
+    pressureS = clamp(68 + (pressure - prev) * 2, 35, 90);
+  }
+
+  const seasonB = season === 'Spring' ? 8 : season === 'Autumn' ? 5 : season === 'Winter' ? -3 : 0;
+  const raw = tempS * 0.25 + pressureS * 0.15 + lightS * 0.14 + windS * 0.14 + low * 0.20 + rainS * 0.12 + seasonB;
+  const finalScore = Math.round(clamp(raw));
+
+  return {
+    score: Number.isFinite(finalScore) ? finalScore : 50,
+    tempS, pressureS, lightS, windS, low, rainS,
+    temp: temp == null ? null : safeNum(temp),
+    cloud: safeNum(cloud),
+    wind: safeNum(wind),
+    rain: safeNum(rain),
+    pressure: safeNum(pressure)
+  };
+}
+
+const BANDS = [
+  { label: 'Bad',       lo: 0,  hi: 39,  t: 0,   note: 'A tough day. Go only if it is your one chance, and fish slowly and close to cover.' },
+  { label: 'Slow',      lo: 40, hi: 54,  t: 25,  note: 'Fish will feed, but expect to work for your bites. Downsize and be patient.' },
+  { label: 'Medium',    lo: 55, hi: 67,  t: 50,  note: 'A decent day. Expect steady fishing if you are on the right spots at the right time.' },
+  { label: 'Good',      lo: 68, hi: 79, t: 75, note: 'Active fish are likely. Worth planning your trip around this one.' },
+  { label: 'Excellent', lo: 80, hi: 100, t: 100, note: 'Prime conditions. Make time for this one and fish the best window hard.' }
+];
+const bandOf = s => BANDS.find(b => s <= b.hi) || BANDS[BANDS.length - 1];
+function quality(s) { return bandOf(safeNum(s, 0)).label; }
+
+function buildGauge() {
+  $('gauge').innerHTML =
+    '<div class="pin" id="gaugePin" style="left:0%"><span id="gaugePinVal">–</span></div>' +
+    '<div class="segs">' + BANDS.map((b, i) => `<div class="seg" data-i="${i}" style="--t:${b.t}"></div>`).join('') + '</div>' +
+    '<div class="labels">' + BANDS.map((b, i) =>
+      `<div class="lab" data-i="${i}"><strong>${b.label}</strong>${b.hi >= 100 ? b.lo + '+' : b.lo + ' to ' + b.hi}</div>`).join('') + '</div>';
+  $('gauge').setAttribute('role', 'img');
+  $('gauge').setAttribute('aria-label', 'Score guide: Bad 0 to 39, Slow 40 to 54, Medium 55 to 67, Good 68 to 79, Excellent 80 and above.');
+}
+
+function updateGauge(score) {
+  const n = clamp(safeNum(score, 0));
+  const i = BANDS.indexOf(bandOf(n));
+  const b = BANDS[i];
+  const frac = Math.min((n - b.lo) / (b.hi - b.lo + 1), 1);
+  const pos = clamp((i + frac) / BANDS.length * 100, 4, 96);
+  $('gaugePin').style.left = pos + '%';
+  $('gaugePinVal').textContent = Math.round(n);
+  $('gauge').classList.add('live');
+  $('gauge').querySelectorAll('.seg,.lab').forEach(el => el.classList.toggle('on', +el.dataset.i === i));
+  $('gauge').setAttribute('aria-label', `Score guide: today scores ${Math.round(n)}, which is ${b.label.toLowerCase()}.`);
+  $('gaugeNote').innerHTML = `<strong>${Math.round(n)} is ${esc(b.label.toLowerCase())}.</strong> ${esc(b.note)}`;
+}
+
+function setStatus(t, err = false) {
+  $('status').textContent = t;
+  $('status').className = 'status' + (err ? ' error' : '');
+}
+
+function updateClock() {
+  const now = new Date();
+  $('liveDate').textContent = now.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  $('liveTime').textContent = now.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' SAST';
+}
+
+/* ---------- tabs ---------- */
+const TABS = ['forecast', 'map', 'log'];
+function showTab(name) {
+  TABS.forEach(n => {
+    $('tab-' + n).hidden = n !== name;
+    const b = $('tabbtn-' + n);
+    b.setAttribute('aria-selected', String(n === name));
+    b.tabIndex = n === name ? 0 : -1;
+  });
+  if (name === 'map' && map) {
+    setTimeout(() => {
+      map.invalidateSize();
+      if (!mapShown && selected) { map.setView([selected.lat, selected.lon], selected.kind === 'free' ? 9 : 8); }
+      mapShown = true;
+    }, 60);
+  }
+}
+TABS.forEach((n, i) => {
+  const b = $('tabbtn-' + n);
+  b.addEventListener('click', () => showTab(n));
+  b.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const next = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length];
+    showTab(next);
+    $('tabbtn-' + next).focus();
+  });
+});
+
+/* ---------- forecast ---------- */
+let currentHours = [];
+let dayInfo = {};
+let chosenName = 'Theewaterskloof Dam';
+let placeDate = '';
+function setPlaceTag() {
+  $('placeTag').textContent = placeDate ? `${chosenName}, ${placeDate}` : chosenName;
+}
+
+function showHour(x) {
+  if (!x) return;
+  const t = x.temp == null ? 'unknown air temperature' : Math.round(x.temp) + '°C air';
+  $('hourDetail').innerHTML =
+    `<strong>${esc(time(x.h.time))}</strong> scores ${x.score}, with ${t}, ${Math.round(x.cloud)}% cloud, ` +
+    `wind at ${Math.round(x.wind)} km/h and a ${Math.round(x.rain)}% chance of rain.`;
+  $('hours').querySelectorAll('.bar').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === x.i)));
+}
+
+
+/* ---------- advice engine ---------- */
+const REGION_PHRASE = { wc: 'the Western Cape', hv: 'Gauteng and the Highveld', kzn: 'KwaZulu-Natal', sa: 'South Africa' };
+const REGION_NAME = { wc: 'Western Cape', hv: 'Gauteng and Highveld', kzn: 'KwaZulu-Natal', sa: 'South Africa' };
+
+function regionFor(lat, lon) {
+  if (lon >= 17.5 && lon <= 22.5 && lat <= -31.5 && lat >= -35.5) return 'wc';
+  if (lon >= 29 && lon <= 33 && lat <= -26.8 && lat >= -31.5) return 'kzn';
+  if (lon >= 25 && lon <= 31.5 && lat <= -23.5 && lat >= -28.5) return 'hv';
+  return 'sa';
+}
+
+const REGIONAL = {
+  wc: {
+    Summer: [
+      "Strong southeasterlies are common in summer. Wind-blown points and banks concentrate baitfish, and a lee shore gives you control for finesse work.",
+      "Many Western Cape dams run clear, so low light and natural colours count for more than they do on turbid Highveld water."
+    ],
+    Autumn: [
+      "Cooling nights start dropping water temperatures. Fish follow baitfish onto points and into creek arms as the dam cools.",
+      "Cold fronts begin arriving late in autumn. Bass often feed ahead of a front and go quiet behind it."
+    ],
+    Winter: [
+      "Winter is the wet season and fronts roll through every week or two. Fish the day before a front and the stable afternoon after it.",
+      "Water is coldest around July and August. Slow down and fish the warmest part of the day, midday into afternoon, on sunny banks and deeper edges beside flats."
+    ],
+    Spring: [
+      "Spring warms sheltered coves first, especially the north-facing banks, which get the most sun in the southern hemisphere. Look there for pre-spawn fish from about September.",
+      "Release spawning fish quickly and leave beds alone where you can."
+    ]
+  },
+  hv: {
+    Summer: [
+      "Summer rain falls mostly as afternoon thunderstorms from about November to March. Fish the morning and be off the water before storms build.",
+      "Warm, nutrient-rich Highveld dams can be turbid or weedy. Use vibration and contrast (spinnerbaits, chatterbaits, black and blue, chartreuse) and weedless rigs around hyacinth or thick weed."
+    ],
+    Autumn: [
+      "Days stay pleasant but nights cool fast at altitude. Fish push shallow in the warmest part of the afternoon and feed up as the water cools.",
+      "Frost can start inland late in autumn. After a cold night, wait for the sun to warm the shallows before fishing them."
+    ],
+    Winter: [
+      "Highveld winters are dry and sunny with frosty mornings. Water gets cold, so fish slowly and start late, from mid-morning to mid-afternoon.",
+      "Clear, still, sunny days can be tough. Downsize, use fluorocarbon and fish deeper edges beside shallow flats."
+    ],
+    Spring: [
+      "Things warm quickly from September. Shallow bays and north-facing banks produce first, and wind-blown points deserve a few casts.",
+      "Early thunderstorms can arrive from October, so keep an eye on the sky."
+    ]
+  },
+  kzn: {
+    Summer: [
+      "Summer is hot and humid with afternoon thunderstorms. Fish early and late, and leave the water as soon as you hear thunder.",
+      "Warm water holds fish deeper at midday. Look for shade, docks, standing timber or deeper weed edges."
+    ],
+    Autumn: [
+      "Autumn is stable and comfortable. Follow bait and bird activity around points and creek mouths as baitfish move.",
+      "Midlands dams cool earlier than those closer to the coast."
+    ],
+    Winter: [
+      "KZN winters are mild and dry, and the water stays warmer than on the Highveld or in the Western Cape, so fish remain catchable. Slow down a notch and favour the warm afternoon.",
+      "Berg wind days bring sudden warm, dry, gusty weather. Expect fast changes in wind direction and pressure around them."
+    ],
+    Spring: [
+      "Water warms fast. In the warmer dams, shallow bays, flats and cover near points hold pre-spawn fish from about August or September, and Midlands dams run a little later.",
+      "The first big thunderstorms often arrive from October."
+    ]
+  },
+  sa: {
+    Summer: ["Most of the country gets summer rain, usually as afternoon thunderstorms. Fish the morning and be off the water when storms build."],
+    Autumn: ["Cooling nights shift fish toward points and creek arms. Fish the warm part of the afternoon."],
+    Winter: ["Water is at its coldest. Slow down and fish the warmest part of the day."],
+    Spring: ["Water warms from the shallows first. Sheltered, sun-facing bays and flats hold pre-spawn fish."]
+  }
+};
+
+function buildAdvice(c) {
+  const b = c.best;
+  const phase = c.meanTemp < 14 ? 'cold' : c.meanTemp < 19 ? 'cool' : c.meanTemp <= 26 ? 'warm' : 'hot';
+  const sky = b.cloud >= 60 ? 'overcast' : b.cloud < 30 ? 'bright' : 'partly cloudy';
+  const where = c.region === 'sa' ? '' : ' in ' + REGION_PHRASE[c.region];
+  const outlook = b.score >= 68
+    ? "Conditions favour an active bite: cover water first, then slow down on the best cover."
+    : b.score < 55
+      ? "Expect a tougher bite: fish slowly, downsize and stay on high-percentage cover."
+      : "Expect a fair bite: start with a search bait and adjust to what the fish tell you.";
+  const summary = `A ${phase}, ${sky} ${c.season.toLowerCase()} day${where}. ${outlook}`;
+
+  const whereItems = {
+    cold: [
+      "Bank: sunny banks and rocky points that catch the afternoon sun. Fish slowly and pause between moves.",
+      "Boat or kayak: sit on deeper edges and channel breaks, roughly 3 to 6 m, beside flats. Work them in the warmest part of the day."
+    ],
+    cool: [
+      "Bank: points, rocky banks and the transition between flats and drop-offs.",
+      "Boat or kayak: mid-depth edges around 2 to 5 m, creek channel swings and wind-blown points."
+    ],
+    warm: [
+      "Bank: weed edges, laydowns, rocks, shaded banks and wind-blown points.",
+      "Boat or kayak: work cover at about 1 to 4 m and the first drop-off, covering water with the trolling motor or paddle."
+    ],
+    hot: [
+      "Bank: shade, trees, jetties and wind-blown points. Fish first and last light, then rest the middle of the day.",
+      "Boat or kayak: after first light, move to deeper structure around 4 to 8 m and cover beside deep water. Look for baitfish on the sounder."
+    ]
+  }[phase].slice();
+
+  const throwItems = {
+    cold: [
+      "Suspending jerkbait with 5 to 10 second pauses, blade baits, and a slow-rolled jig or shaky head at 1/8 to 1/4 oz.",
+      "Drop to 8 to 10 lb fluorocarbon where the water is clear."
+    ],
+    cool: [
+      "Jerkbaits, mid-depth crankbaits and slow-rolled spinnerbaits around 3/8 oz.",
+      "Switch to a jig or Texas-rigged creature bait on harder cover when they ignore moving baits."
+    ],
+    warm: [
+      "Topwater early and late (walking bait, popper, buzzbait), then swim jigs, spinnerbaits and Texas-rigged worms as the sun climbs.",
+      "Kurper-coloured swimbaits and crankbaits (bluegill and bream patterns) suit most SA dams."
+    ],
+    hot: [
+      "Topwater and buzzbaits at first light, then Carolina rigs, drop shots and big worms on deeper structure.",
+      "When the bite goes quiet, slow down and downsize. Fish rarely chase in hot, bright midday water."
+    ]
+  }[phase].slice();
+
+  if (b.cloud >= 60) throwItems.push("Overcast helps: fish roam shallower and chase. Cover water with spinnerbaits, chatterbaits and crankbaits in brighter or darker colours.");
+  else if (b.cloud < 30) throwItems.push("Bright and clear: fish tuck into shade and deeper cover. Use natural, translucent colours, smaller baits and longer pauses.");
+  else throwItems.push("Mixed light: start with a search bait, then slow down with a jig or worm on the best cover.");
+
+  const timing = [];
+  const midWin = (c.startH + c.endH) / 2;
+  const lowLight = (Number.isFinite(c.sunriseH) && Math.abs(midWin - c.sunriseH) <= 1.5) ||
+                   (Number.isFinite(c.sunsetH) && Math.abs(midWin - c.sunsetH) <= 1.5);
+  if (lowLight) timing.push("Your best window sits around first or last light. Fish shallow cover and flats with topwater and shallow reaction baits, then move deeper as the light climbs.");
+  else timing.push("Your best window falls in the middle of the day. Expect fish tight to shade or deeper structure, and favour the cloudier or windier hours.");
+
+  if (b.wind < 5) timing.push("Calm: make long casts and stay quiet. Topwater and finesse baits work, and sound carries, so keep boat noise and your shadow off the water.");
+  if (b.h && Number.isFinite(b.h.wind_direction_10m) && b.wind >= 5) timing.push(windCallFor(b.wind, b.h.wind_direction_10m));
+  if (b.wind < 5) {} else if (b.wind <= 18) timing.push("A light to moderate breeze is ideal. Fish the wind-blown bank with spinnerbaits or crankbaits, and drift a boat with a drogue.");
+  else timing.push("Strong wind: fish sheltered coves and the lee side, use 3/8 to 1/2 oz baits and heavier line to keep contact, and take care in a boat.");
+
+  if (c.deltaP != null) {
+    if (c.deltaP <= -4) timing.push("Pressure is dropping fast. Fish often feed ahead of a front, so cover water with reaction baits and expect conditions to change quickly.");
+    else if (c.deltaP <= -2) timing.push("Pressure is falling steadily, which anglers usually read as a good sign. Fish moving baits.");
+    else if (c.deltaP >= 4) timing.push("Pressure is climbing fast. Fish usually tighten to cover and get fussy, so slow down, downsize and fish close to structure.");
+    else if (c.deltaP >= 2) timing.push("Pressure is rising. The bite may be tougher at first and improve as it settles.");
+    else timing.push("Pressure is steady, so fish should follow normal light and temperature patterns.");
+  }
+  if (b.rain >= 60) timing.push("High chance of rain. Light rain can switch the bite on, but heavy rain or thunder means getting off the water.");
+  if (c.moon && (c.moon.phase === 'New moon' || c.moon.phase === 'Full moon')) {
+    timing.push(`Near the ${c.moon.phase.toLowerCase()}, some anglers see stronger feeding at first and last light. Treat it as a tie-breaker, not a rule.`);
+  }
+
+  const local = (REGIONAL[c.region] && REGIONAL[c.region][c.season]) || REGIONAL.sa[c.season];
+
+  const before = [
+    "Check the dam's permit and bag rules. They differ by dam and province, and some dams are run by a club or authority.",
+    "Check the current water level. Falling levels push fish off bank cover, and rising stained water moves them into flooded bushes and edges."
+  ];
+  if (b.wind >= 25) before.unshift("Wind at this strength is risky for kayaks and small boats. Stay off open water or fish sheltered arms.");
+  if (b.rain >= 40 && c.region !== 'wc') before.unshift("Thunderstorm risk: leave the water at the first thunder, and keep clear of the dam wall and open banks.");
+  if (phase === 'hot') before.push("In hot conditions, handle fish quickly and keep them in the water as much as you can before release.");
+
+  return {
+    summary,
+    sections: [
+      { title: 'Where to fish', items: whereItems },
+      { title: 'What to throw', items: throwItems },
+      { title: 'Timing and weather', items: timing },
+      { title: `${REGION_NAME[c.region]} in ${c.season.toLowerCase()}`, items: local },
+      { title: 'Before you go', items: before, wide: true }
+    ]
+  };
+}
+
+function renderAdvice(c) {
+  const adv = buildAdvice(c);
+  $('tips').innerHTML = `<p class="sum">${esc(adv.summary)}</p>` + adv.sections.map(sec =>
+    `<div class="adv${sec.wide ? ' wide' : ''}"><h3>${esc(sec.title)}</h3><ul>${sec.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`
+  ).join('');
+  $('adviceHint').textContent = c.region === 'sa'
+    ? 'This spot is outside the regions this page knows well, so the local notes are general.'
+    : `Tuned for ${REGION_PHRASE[c.region]} in ${c.season.toLowerCase()}. Location is worked out from the coordinates.`;
+}
+
+async function load() {
+  const btn = $('load');
+  btn.disabled = true;
+  setStatus('Loading the forecast.');
+  try {
+    const lat = Number($('lat').value);
+    const lon = Number($('lon').value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+      throw Error('Enter a valid latitude and longitude.');
+    }
+
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m&daily=sunrise,sunset&forecast_days=7&timezone=auto`;
+    let data, offlineAt = null;
+    try {
+    let res;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      res = await fetch(url, { signal: ctrl.signal });
+    } catch (netErr) {
+      throw Error(netErr && netErr.name === 'AbortError'
+        ? 'Open-Meteo took too long to respond. Try Refresh.'
+        : 'Could not reach Open-Meteo. Check your connection, and open this page as a file in a normal browser rather than a preview.');
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) {
+      let reason = '';
+      try { reason = (await res.json()).reason || ''; } catch {}
+      throw Error('Open-Meteo returned an error (' + res.status + ')' + (reason ? ': ' + reason : '.'));
+    }
+    data = await res.json();
+    if (!data.hourly || !data.hourly.time || !data.hourly.time.length) throw Error('Open-Meteo returned no hourly forecast.');
+    saveForecast(lat, lon, data);
+    } catch (fetchErr) {
+      const c = cachedForecast(lat, lon);
+      if (!c) throw fetchErr;
+      data = c.data; offlineAt = new Date(c.savedAt);
+    }
+    if (!data.hourly || !data.hourly.time || !data.hourly.time.length) throw Error('Open-Meteo returned no hourly forecast.');
+    if (!data.daily || !data.daily.time || !data.daily.time.length) throw Error('Open-Meteo returned no daily forecast.');
+
+    let day = $('forecastDay').value || data.daily.time[0];
+    if (!data.daily.time.includes(day)) {
+      day = data.daily.time[0];
+      $('forecastDay').value = day;
+    }
+
+    const dayIndex = data.daily.time.indexOf(day);
+    const noon = new Date(day + 'T12:00:00');
+    const season = seasonFor(noon);
+    const moon = moonInfo(noon);
+    const sunrise = data.daily.sunrise[dayIndex];
+    const sunset = data.daily.sunset[dayIndex];
+
+    const inds = [];
+    for (let i = 0; i < data.hourly.time.length; i++) {
+      if (data.hourly.time[i].startsWith(day)) inds.push(i);
+    }
+    if (!inds.length) throw Error('No hourly data for the selected day.');
+
+    const arr = inds.map(i => {
+      const h = {};
+      Object.keys(data.hourly).forEach(k => h[k] = data.hourly[k][i]);
+      const prev = i ? data.hourly.pressure_msl[i - 1] : null;
+      return { i, h, ...score(h, prev, season, sunrise, sunset) };
+    });
+
+    const avg = Math.round(arr.reduce((a, x) => a + safeNum(x.score), 0) / arr.length);
+    const safeAvg = Number.isFinite(avg) ? avg : 0;
+
+    // best window: the top hour, widened up to three hours while neighbours stay close
+    const pool = arr.filter(x => { const t = hourOf(x.h.time); return t >= 4 && t <= 21; });
+    const hours = pool.length ? pool : arr;
+    const best = hours.reduce((a, b) => b.score > a.score ? b : a, hours[0]);
+    let lo = hours.indexOf(best), hi = lo;
+    while (hi - lo < 2) {
+      const L = hours[lo - 1], R = hours[hi + 1];
+      const okL = L && L.score >= best.score - 6;
+      const okR = R && R.score >= best.score - 6;
+      if (okR && (!okL || R.score >= L.score)) hi++;
+      else if (okL) lo--;
+      else break;
+    }
+    const startH = hourOf(hours[lo].h.time);
+    const endH = hourOf(hours[hi].h.time) + 1;
+
+    placeDate = noon.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' });
+    setPlaceTag();
+    $('bestWindow').textContent = `Fish ${hh(startH)} to ${hh(endH)}`;
+    $('dailyScore').innerHTML = `<span class="num">${safeAvg}</span><span class="of">out of 100</span>`;
+    $('quality').textContent = quality(safeAvg) + ' day overall';
+    updateGauge(safeAvg);
+    $('windowReason').textContent =
+      `Best single hour scores ${best.score}. ` +
+      (best.cloud >= 60 ? 'Cloud cover may cut light levels.'
+        : best.cloud < 30 ? 'Bright skies may push fish toward shade or deeper cover.'
+        : 'Mixed light may suit searching, then slowing down.') +
+      ` Wind ${Math.round(best.wind)} km/h, ${Math.round(best.rain)}% chance of rain.`;
+    $('sunrise').textContent = time(sunrise);
+    $('sunset').textContent = time(sunset);
+    $('pressure').textContent = Math.round(best.pressure) + ' hPa';
+    const wdir = safeNum(best.h.wind_direction_10m, NaN);
+    $('wind').textContent = Math.round(best.wind) + ' km/h' + (Number.isFinite(wdir) ? ' ' + compass(wdir) : '');
+    $('windCall').textContent = windCallFor(best.wind, wdir);
+    $('season').textContent = season + ' in the southern hemisphere.';
+    $('moon').textContent = moon.phase + ', ' + moon.illum + '% lit.';
+    try { renderMoonStrip(moon); renderSolunar(moon, sunrise, sunset); } catch (e) { console.error('moon strip', e); }
+
+    // hour bars
+    currentHours = arr.filter(x => { const t = hourOf(x.h.time); return t >= 5 && t <= 20; });
+    $('hours').classList.remove('in');
+    $('hours').innerHTML = currentHours.map((x, n) => {
+      const t = hourOf(x.h.time);
+      const inWin = t >= startH && t < endH;
+      return `<button type="button" class="bar${inWin ? ' win' : ''}" data-i="${x.i}" aria-pressed="false" aria-label="${hh(t)}, score ${x.score}${inWin ? ', in best window' : ''}">
+        <span class="track"><span class="fill" style="--h:${Math.max(6, x.score)}%;--t:${heat(x.score)};--i:${n}"></span></span>
+        <span class="lbl${t % 3 === 0 ? ' show' : ''}">${t}</span>
+      </button>`;
+    }).join('') || '<p class="hint">No hourly slots between 05:00 and 20:00.</p>';
+    requestAnimationFrame(() => requestAnimationFrame(() => $('hours').classList.add('in')));
+    showHour(currentHours.find(x => x.i === best.i) || currentHours[0]);
+
+    // factors
+    const factors = [
+      ['Air temperature', best.tempS],
+      ['Pressure trend', best.pressureS],
+      ['Cloud and light', best.lightS],
+      ['Wind', best.windS],
+      ['Low-light timing', best.low],
+      ['Chance of rain', best.rainS]
+    ];
+    $('factors').innerHTML = factors.map(([n, v]) => `
+      <div class="factor">
+        <div class="row"><span>${n}</span><span>${Math.round(safeNum(v))}</span></div>
+        <div class="meter"><span style="width:${Math.round(safeNum(v))}%"></span></div>
+      </div>`).join('');
+
+    // advice
+    const pm = data.hourly.pressure_msl;
+    const deltaP = (best.i >= 6 && Number.isFinite(pm[best.i]) && Number.isFinite(pm[best.i - 6])) ? pm[best.i] - pm[best.i - 6] : null;
+    try { updatePressureGauge(best.pressure, deltaP); } catch (e) { console.error('pressure gauge', e); }
+    const dayTemps = arr.filter(x => x.temp != null && hourOf(x.h.time) >= 7 && hourOf(x.h.time) <= 18).map(x => x.temp);
+    const meanTemp = dayTemps.length ? dayTemps.reduce((a, v) => a + v, 0) / dayTemps.length
+      : ({ Summer: 26, Autumn: 20, Winter: 13, Spring: 20 }[season]);
+    const clockH = t => { const m = time(t).match(/^(\d\d):(\d\d)$/); return m ? +m[1] + +m[2] / 60 : NaN; };
+    renderAdvice({
+      region: regionFor(lat, lon), season, meanTemp, best, startH, endH, deltaP, moon,
+      sunriseH: clockH(sunrise), sunsetH: clockH(sunset)
+    });
+
+    renderWeek(data);
+    if (dayInfo[day]) dayInfo[day].window = `${hh(startH)} to ${hh(endH)}`;
+    updateLogForecast();
+    const top = Object.entries(dayInfo).reduce((a, e) => !a || e[1].avg > a[1].avg ? e : a, null);
+    if (top) {
+      const wd = new Date(top[0] + 'T12:00:00').toLocaleDateString('en-ZA', { weekday: 'long' });
+      $('bestDay').textContent = top[0] === localISODate(new Date()) ? `Today is the best of the next 7 (${top[1].avg})` : `${wd} is the best of the next 7 (${top[1].avg})`;
+    }
+    if (offlineAt) {
+      const d = offlineAt, sameDay = localISODate(d) === localISODate(new Date());
+      const stamp = (sameDay ? '' : d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' }) + ' ') + d.toTimeString().slice(0, 5);
+      $('status').textContent = `Offline, last updated ${stamp}. Showing the saved forecast.`;
+      $('status').className = 'status offline';
+    } else setStatus(`Updated for ${day}. Times are ${data.timezone || 'local'}.`);
+  } catch (e) {
+    console.error('BassCast load error:', e);
+    setStatus(e && e.message ? e.message : 'Something went wrong loading the forecast.', true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function localISODate(d) {
+  const x = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return x.toISOString().slice(0, 10);
+}
+
+function renderWeek(data) {
+  try {
+    const selected = $('forecastDay').value;
+    dayInfo = {};
+    const cards = data.daily.time.map((day, idx) => {
+      const season = seasonFor(new Date(day + 'T12:00:00'));
+      const scored = [];
+      for (let i = 0; i < data.hourly.time.length; i++) {
+        if (!data.hourly.time[i].startsWith(day)) continue;
+        const h = {};
+        Object.keys(data.hourly).forEach(k => h[k] = data.hourly[k][i]);
+        scored.push(score(h, i ? data.hourly.pressure_msl[i - 1] : null, season, data.daily.sunrise[idx], data.daily.sunset[idx]));
+      }
+      if (!scored.length) return { day, avg: 0, best: '–' };
+      const avg = Math.round(scored.reduce((a, x) => a + safeNum(x.score), 0) / scored.length);
+      const pool = scored.filter(x => { const t = hourOf(x.time || ''); return t >= 4 && t <= 21; });
+      const list = pool.length ? pool : scored;
+      const b = list.reduce((a, c) => c.score > a.score ? c : a, list[0]);
+      const safe = Number.isFinite(avg) ? avg : 0;
+      dayInfo[day] = { avg: safe, best: time(b.time || '') };
+      return { day, avg: safe, best: time(b.time || '') };
+    });
+    $('week').innerHTML = cards.map(c => {
+      const d = new Date(c.day + 'T12:00:00');
+      return `<button type="button" class="day" data-day="${c.day}" aria-pressed="${c.day === selected}" aria-label="${d.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}, score ${c.avg}">
+        <div class="dn">${d.toLocaleDateString('en-ZA', { weekday: 'short' })} ${d.getDate()}</div>
+        <div class="ds">${c.avg}</div>
+        <div class="mini"><i style="width:${clamp(c.avg)}%;--t:${heat(c.avg)}"></i></div>
+        <div class="db">${quality(c.avg)}</div>
+      </button>`;
+    }).join('');
+  } catch (err) {
+    console.error('renderWeek error:', err);
+    $('week').innerHTML = '<p class="hint">Could not build the weekly outlook. Try Refresh.</p>';
+  }
+}
+
+$('week').addEventListener('click', e => {
+  const b = e.target.closest('[data-day]');
+  if (!b) return;
+  $('forecastDay').value = b.dataset.day;
+  load();
+});
+$('hours').addEventListener('click', e => {
+  const b = e.target.closest('.bar');
+  if (!b) return;
+  showHour(currentHours.find(x => x.i === +b.dataset.i));
+});
+
+/* ---------- map and spots ---------- */
+const dams = [
+  { name: 'Theewaterskloof Dam', lat: -34.05, lon: 19.32 },
+  { name: 'Clanwilliam Dam', lat: -32.18, lon: 18.95 },
+  { name: 'Brandvlei Dam', lat: -33.78, lon: 19.45 },
+  { name: 'Kwaggaskloof Dam', lat: -33.79, lon: 19.56 },
+  { name: 'Wemmershoek Dam', lat: -33.85, lon: 19.03 },
+  { name: 'Roodeplaat Dam', lat: -25.63, lon: 28.36 },
+  { name: 'Hartbeespoort Dam', lat: -25.73, lon: 27.86 },
+  { name: 'Bronkhorstspruit Dam', lat: -25.82, lon: 28.75 },
+  { name: 'Rust de Winter Dam', lat: -25.19, lon: 28.58 },
+  { name: 'Albert Falls Dam', lat: -29.45, lon: 30.45 },
+  { name: 'Inanda Dam', lat: -29.67, lon: 30.88 },
+  { name: 'Nagle Dam', lat: -29.57, lon: 30.76 },
+  { name: 'Midmar Dam', lat: -29.50, lon: 30.20 }
+];
+
+const SPOT_KEY = 'basscastSpots', LAST_KEY = 'basscastLast';
+let map = null, tempMarker = null, spotLayer = null, mapShown = false;
+let spots = [], selected = null, editingId = null;
+
+const cleanName = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+const newId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const validLL = (la, lo) => Number.isFinite(la) && Number.isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180;
+
+function loadSpots() {
+  try {
+    const a = JSON.parse(localStorage.getItem(SPOT_KEY) || '[]');
+    return Array.isArray(a)
+      ? a.filter(x => x && x.id && validLL(+x.lat, +x.lon)).map(x => ({ id: String(x.id), name: cleanName(x.name) || 'My spot', lat: +x.lat, lon: +x.lon }))
+      : [];
+  } catch { return []; }
+}
+function saveSpots() {
+  try { localStorage.setItem(SPOT_KEY, JSON.stringify(spots)); return true; } catch { return false; }
+}
+function rememberLast() {
+  if (!selected) return;
+  try { localStorage.setItem(LAST_KEY, JSON.stringify({ kind: selected.kind, id: selected.id || null, name: selected.name, lat: selected.lat, lon: selected.lon })); } catch {}
+}
+
+function pinIcon(fill, dot) {
+  return L.divIcon({
+    className: 'pin-icon',
+    html: `<svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 36C15 36 3 23 3 14a12 12 0 0 1 24 0c0 9-12 22-12 22z" fill="${fill}" stroke="#F7F9F8" stroke-width="2"/><circle cx="15" cy="14" r="4.5" fill="${dot}"/></svg>`,
+    iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32]
+  });
+}
+
+function damOptionValue(name) {
+  const o = [...$('water').options].find(x => x.value.split(',')[2] === name);
+  return o ? o.value : 'custom';
+}
+function syncSelect() {
+  if (!selected) return;
+  $('water').value = selected.kind === 'dam' ? damOptionValue(selected.name)
+    : selected.kind === 'spot' ? 'spot:' + selected.id : 'custom';
+}
+
+function renderSpotSelect() {
+  const old = $('mySpotsGroup');
+  if (old) old.remove();
+  if (!spots.length) return;
+  const g = document.createElement('optgroup');
+  g.id = 'mySpotsGroup';
+  g.label = 'My spots';
+  spots.forEach(sp => {
+    const o = document.createElement('option');
+    o.value = 'spot:' + sp.id;
+    o.textContent = sp.name;
+    g.appendChild(o);
+  });
+  $('water').insertBefore(g, $('water').querySelector('option[value="custom"]'));
+}
+
+function renderMySpots() {
+  const box = $('mySpots');
+  if (!spots.length) {
+    box.innerHTML = '<p class="hint">No saved spots yet. Tap anywhere on the map, name the spot and save it.</p>';
+    return;
+  }
+  box.innerHTML = spots.map(sp => editingId === sp.id
+    ? `<form class="spotrow editing" data-id="${esc(sp.id)}">
+        <label class="sr" for="rn-${esc(sp.id)}">Spot name</label>
+        <input id="rn-${esc(sp.id)}" value="${esc(sp.name)}" maxlength="60" autocomplete="off">
+        <button class="btn" type="submit">Save name</button>
+        <button class="btn ghost" type="button" data-act="cancel">Cancel</button>
+      </form>`
+    : `<div class="spotrow" data-id="${esc(sp.id)}">
+        <button type="button" class="spotname" data-act="use"><strong>${esc(sp.name)}</strong><span>${sp.lat.toFixed(3)}, ${sp.lon.toFixed(3)}</span></button>
+        <div class="spotbtns">
+          <button type="button" class="link" data-act="rename" aria-label="Rename ${esc(sp.name)}">Rename</button>
+          <button type="button" class="link" data-act="delete" aria-label="Delete ${esc(sp.name)}">Delete</button>
+        </div>
+      </div>`).join('');
+}
+
+function spotPopup(sp) {
+  const d = document.createElement('div');
+  d.className = 'spotpop';
+  const t = document.createElement('strong'); t.textContent = sp.name;
+  const c = document.createElement('div'); c.className = 'fine'; c.textContent = `${sp.lat.toFixed(4)}, ${sp.lon.toFixed(4)}`;
+  const row = document.createElement('div'); row.className = 'spotpopbtns';
+  const r = document.createElement('button'); r.type = 'button'; r.textContent = 'Rename';
+  r.addEventListener('click', () => { if (map) map.closePopup(); startRename(sp.id); });
+  const x = document.createElement('button'); x.type = 'button'; x.textContent = 'Delete';
+  x.addEventListener('click', () => armDelete(x, sp.id));
+  row.append(r, x);
+  d.append(t, c, row);
+  return d;
+}
+
+function renderSpotMarkers() {
+  if (!map || !spotLayer) return;
+  spotLayer.clearLayers();
+  spots.forEach(sp => {
+    const m = L.marker([sp.lat, sp.lon], { icon: pinIcon('#E3A72F', '#12262E'), title: sp.name });
+    m.bindPopup(() => spotPopup(sp));
+    m.on('click', () => applySelection({ kind: 'spot', id: sp.id, name: sp.name, lat: sp.lat, lon: sp.lon }));
+    m.addTo(spotLayer);
+  });
+}
+
+function refreshSpotUI() {
+  renderSpotMarkers();
+  renderSpotSelect();
+  renderMySpots();
+  syncSelect();
+}
+
+function hideTempPin() {
+  if (tempMarker && map) map.removeLayer(tempMarker);
+  tempMarker = null;
+}
+function showTempPin(lat, lon) {
+  if (!map) return;
+  if (tempMarker) { tempMarker.setLatLng([lat, lon]); return; }
+  tempMarker = L.marker([lat, lon], { icon: pinIcon('#1D4E5C', '#E3A72F'), draggable: true, title: 'New spot. Drag to adjust.' }).addTo(map);
+  tempMarker.on('dragend', () => {
+    const p = tempMarker.getLatLng();
+    applySelection({ kind: 'free', name: 'Custom fishing spot', lat: p.lat, lon: p.lng }, { form: true });
+  });
+}
+
+// One place that changes the chosen spot, whatever the source (map, list, menu, coordinates, location).
+function applySelection(sel, opts = {}) {
+  selected = sel;
+  $('lat').value = sel.lat.toFixed(4);
+  $('lon').value = sel.lon.toFixed(4);
+  chosenName = sel.name;
+  $('logSpot').value = sel.name;
+  setPlaceTag();
+  $('mapPick').textContent = `${sel.name} (${sel.lat.toFixed(3)}, ${sel.lon.toFixed(3)})`;
+  $('useMapLocation').disabled = false;
+  syncSelect();
+  if (sel.kind === 'free' && opts.form) {
+    showTempPin(sel.lat, sel.lon);
+    $('spotForm').hidden = false;
+    if (opts.focusName) {
+      $('spotName').value = `My spot ${spots.length + 1}`;
+      setTimeout(() => { $('spotName').focus(); $('spotName').select(); }, 0);
+    }
+  } else {
+    hideTempPin();
+    $('spotForm').hidden = true;
+  }
+  if (map && opts.move) map.setView([sel.lat, sel.lon], opts.zoom || 9);
+  rememberLast();
+}
+
+function startFreeSpot(lat, lon, o = {}) {
+  $('spotMsg').textContent = '';
+  applySelection({ kind: 'free', name: o.name || 'Custom fishing spot', lat, lon }, { form: true, focusName: true, ...o.view });
+}
+
+function startRename(id) {
+  editingId = id;
+  renderMySpots();
+  const el = $('rn-' + id);
+  if (el) {
+    if (el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.focus();
+    el.select();
+  }
+}
+
+function renameSpot(id, name) {
+  const sp = spots.find(x => x.id === id);
+  const n = cleanName(name);
+  if (!sp) return;
+  if (!n) { $('spotMsg').textContent = 'Give the spot a name first.'; return; }
+  sp.name = n;
+  const ok = saveSpots();
+  editingId = null;
+  if (selected && selected.kind === 'spot' && selected.id === id) {
+    selected.name = n;
+    chosenName = n;
+    $('logSpot').value = n;
+    setPlaceTag();
+    $('mapPick').textContent = `${n} (${sp.lat.toFixed(3)}, ${sp.lon.toFixed(3)})`;
+    rememberLast();
+  }
+  refreshSpotUI();
+  $('spotMsg').textContent = ok ? `Renamed to ${n}.` : 'Renamed for now, but this browser would not keep the change.';
+}
+
+function deleteSpot(id) {
+  const sp = spots.find(x => x.id === id);
+  if (!sp) return;
+  spots = spots.filter(x => x.id !== id);
+  const ok = saveSpots();
+  if (selected && selected.kind === 'spot' && selected.id === id) {
+    selected = { kind: 'free', id: null, name: sp.name, lat: sp.lat, lon: sp.lon };
+    rememberLast();
+  }
+  if (editingId === id) editingId = null;
+  if (map) map.closePopup();
+  refreshSpotUI();
+  $('spotMsg').textContent = ok ? `Deleted ${sp.name}.` : 'Deleted for now, but this browser would not keep the change.';
+}
+
+// Two taps to delete, so a stray tap cannot remove a spot.
+function armDelete(btn, id) {
+  if (btn.dataset.armed) { deleteSpot(id); return; }
+  btn.dataset.armed = '1';
+  const label = btn.textContent;
+  btn.textContent = 'Tap again to delete';
+  setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = label; } }, 3500);
+}
+
+function initMap() {
+  if (typeof L === 'undefined') {
+    $('map').innerHTML = '<p style="padding:16px">The map could not load. Check your connection and refresh. You can still pick a dam from the menu, or enter coordinates below to save a spot.</p>';
+    return;
+  }
+  map = L.map('map').setView([-30.5, 25.5], 5);
+  // Free layers from Esri's public tile service. No account or API key is needed, and it
+  // does not require a referrer header, so it works in previews and when opened as a local file.
+  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+  const esri = (name, attr, max) => L.tileLayer(ESRI + name + '/MapServer/tile/{z}/{y}/{x}', { maxZoom: max || 18, attribution: attr });
+  const street = esri('World_Street_Map', 'Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors', 19);
+  const topo = esri('World_Topo_Map', 'Tiles &copy; Esri, HERE, Garmin, USGS, OpenStreetMap contributors');
+  const sat = () => esri('World_Imagery', 'Imagery &copy; Esri, Maxar, Earthstar Geographics');
+  const labels = esri('Reference/World_Boundaries_and_Places', '');
+  street.addTo(map);
+  L.control.layers({ 'Map': street, 'Terrain': topo, 'Satellite': sat(), 'Hybrid': L.layerGroup([sat(), labels]) }, null, { position: 'topright' }).addTo(map);
+
+  // Tell the user plainly if tiles cannot load at all.
+  let fails = 0;
+  street.on('tileerror', () => {
+    if (++fails === 4) $('spotMsg').textContent = 'The map tiles could not load. Check your connection. You can still pick a dam from the menu or enter coordinates below.';
+  });
+
+  dams.forEach(d => {
+    const m = L.marker([d.lat, d.lon], { icon: pinIcon('#12262E', '#F7F9F8'), title: d.name }).addTo(map)
+      .bindPopup('<strong>' + esc(d.name) + '</strong>');
+    m.on('click', () => applySelection({ kind: 'dam', name: d.name, lat: d.lat, lon: d.lon }));
+  });
+  spotLayer = L.layerGroup().addTo(map);
+  renderSpotMarkers();
+  map.on('click', e => startFreeSpot(e.latlng.lat, e.latlng.lng));
+}
+
+$('spotForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!selected || selected.kind !== 'free') return;
+  const name = cleanName($('spotName').value) || `My spot ${spots.length + 1}`;
+  const sp = { id: newId(), name, lat: selected.lat, lon: selected.lon };
+  spots.push(sp);
+  const ok = saveSpots();
+  refreshSpotUI();
+  applySelection({ kind: 'spot', id: sp.id, name: sp.name, lat: sp.lat, lon: sp.lon });
+  $('spotMsg').textContent = ok
+    ? `Saved ${name}. It is in your list below and in the spot menu at the top.`
+    : 'Saved for now, but this browser would not keep it after you close the page.';
+});
+$('spotCancel').addEventListener('click', () => { hideTempPin(); $('spotForm').hidden = true; });
+
+$('mySpots').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const row = b.closest('[data-id]');
+  const sp = row && spots.find(x => x.id === row.dataset.id);
+  if (!sp) return;
+  const act = b.dataset.act;
+  if (act === 'use') applySelection({ kind: 'spot', id: sp.id, name: sp.name, lat: sp.lat, lon: sp.lon }, { move: true });
+  else if (act === 'rename') startRename(sp.id);
+  else if (act === 'cancel') { editingId = null; renderMySpots(); }
+  else if (act === 'delete') armDelete(b, sp.id);
+});
+$('mySpots').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target.closest('form[data-id]');
+  if (f) renameSpot(f.dataset.id, f.querySelector('input').value);
+});
+
+$('useMapLocation').addEventListener('click', () => {
+  if (!selected) return;
+  showTab('forecast');
+  load();
+});
+
+$('applyCoords').addEventListener('click', () => {
+  const lat = Number($('lat').value), lon = Number($('lon').value);
+  if (!validLL(lat, lon) || $('lat').value === '' || $('lon').value === '') {
+    $('spotMsg').textContent = 'Enter a latitude between -90 and 90 and a longitude between -180 and 180.';
+    return;
+  }
+  startFreeSpot(lat, lon, { view: { move: true, zoom: 10 } });
+});
+
+$('locateMe').addEventListener('click', () => {
+  if (!navigator.geolocation) { $('spotMsg').textContent = 'This browser cannot share your location. Tap the map instead.'; return; }
+  $('spotMsg').textContent = 'Finding your location.';
+  navigator.geolocation.getCurrentPosition(
+    p => {
+      startFreeSpot(p.coords.latitude, p.coords.longitude, { name: 'My location', view: { move: true, zoom: 14 } });
+      $('spotMsg').textContent = 'Pin dropped at your location. Name it to save it.';
+    },
+    () => { $('spotMsg').textContent = 'Could not get your location. Allow location access for this page, or tap the map instead.'; },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+});
+
+function onWaterChange(fetchNow) {
+  const v = $('water').value;
+  if (v === 'custom') return;
+  if (v.startsWith('spot:')) {
+    const sp = spots.find(x => x.id === v.slice(5));
+    if (!sp) return;
+    applySelection({ kind: 'spot', id: sp.id, name: sp.name, lat: sp.lat, lon: sp.lon }, { move: true });
+  } else {
+    const p = v.split(',');
+    applySelection({ kind: 'dam', name: p[2], lat: Number(p[0]), lon: Number(p[1]) }, { move: true, zoom: 8 });
+  }
+  if (fetchNow) load();
+}
+$('water').addEventListener('change', () => onWaterChange(true));
+
+function restoreLast() {
+  let last = null;
+  try { last = JSON.parse(localStorage.getItem(LAST_KEY) || 'null'); } catch {}
+  if (last && validLL(+last.lat, +last.lon)) {
+    if (last.kind === 'spot') {
+      const sp = spots.find(x => x.id === last.id);
+      if (sp) { applySelection({ kind: 'spot', id: sp.id, name: sp.name, lat: sp.lat, lon: sp.lon }, { move: true }); return; }
+    } else if (last.kind === 'dam') {
+      const d = dams.find(x => x.name === last.name);
+      if (d) { applySelection({ kind: 'dam', name: d.name, lat: d.lat, lon: d.lon }, { move: true, zoom: 8 }); return; }
+    } else if (last.kind === 'free') {
+      applySelection({ kind: 'free', name: 'Custom fishing spot', lat: +last.lat, lon: +last.lon }, { move: true });
+      return;
+    }
+  }
+  onWaterChange(false);
+}
+
+$('load').addEventListener('click', load);
+
+/* ---------- catch log ---------- */
+function logs() {
+  try { return JSON.parse(localStorage.getItem('basscastLogs') || '[]'); } catch { return []; }
+}
+function saveLogs(a) {
+  try { localStorage.setItem('basscastLogs', JSON.stringify(a)); return true; } catch { return false; }
+}
+
+function updateLogForecast() {
+  const d = $('resultDate').value;
+  const info = dayInfo[d];
+  $('logForecast').textContent = info
+    ? `Forecast for ${d}: score ${info.avg}, ${info.window ? 'best window ' + info.window : 'best hour ' + info.best}. It will be saved with this session.`
+    : 'No forecast score for this date. Forecasts cover the next seven days, so older sessions are saved without one.';
+}
+
+function renderLogSummary(a) {
+  const scored = a.filter(x => x.score != null);
+  if (scored.length < 5) {
+    $('logSummary').innerHTML = `<p class="hint">Log at least 5 sessions that have a forecast score to see how scores compare with your catches. You have ${scored.length} so far.</p>`;
+    return;
+  }
+  const bands = [
+    { label: 'Good or excellent (68+)', test: s => s >= 68 },
+    { label: 'Medium (55 to 67)', test: s => s >= 55 && s < 68 },
+    { label: 'Slow or bad (under 55)', test: s => s < 55 }
+  ].map(bd => {
+    const rows = scored.filter(x => bd.test(x.score));
+    const bass = rows.reduce((t, x) => t + safeNum(x.count), 0);
+    const withHours = rows.filter(x => safeNum(x.hours) > 0);
+    const hrs = withHours.reduce((t, x) => t + safeNum(x.hours), 0);
+    const perHr = hrs > 0 ? withHours.reduce((t, x) => t + safeNum(x.count), 0) / hrs : null;
+    return { label: bd.label, n: rows.length, avg: rows.length ? bass / rows.length : null, perHr };
+  }).filter(bd => bd.n > 0);
+  const max = Math.max(...bands.map(bd => bd.avg), 1);
+  $('logSummary').innerHTML = '<h2 style="font:800 1.1rem var(--display)">Scores against your catches</h2>' +
+    bands.map(bd => `<div class="bandrow">
+      <strong>${bd.label}</strong>
+      <span>${bd.n} session${bd.n === 1 ? '' : 's'}</span>
+      <span>${bd.avg.toFixed(1)} bass per session${bd.perHr != null ? ', ' + bd.perHr.toFixed(1) + ' per hour' : ''}</span>
+      <div class="meter"><span style="width:${Math.round(bd.avg / max * 100)}%"></span></div>
+    </div>`).join('') +
+    '<p class="fine">Small samples are noisy. Treat this as a rough guide until you have a few dozen sessions.</p>';
+}
+
+function renderLogs() {
+  const a = logs();
+  renderLogSummary(a);
+  $('logs').innerHTML = a.slice(0, 10).map((x, i) => {
+    const catchTxt = `${esc(x.count)} bass` + (safeNum(x.hours) > 0 ? ` in ${esc(x.hours)} h` : '');
+    return `<div class="logrow">
+      <div><strong>${esc(x.date)}</strong>, ${esc(x.spot || 'unknown spot')}: ${catchTxt}${x.lure ? ', ' + esc(x.lure) : ''}</div>
+      <div>${x.score != null ? `<span class="chip">Forecast ${esc(x.score)}</span>` : '<span class="chip none">No forecast</span>'}<button type="button" class="rm" data-idx="${i}" aria-label="Remove session from ${esc(x.date)}">Remove</button></div>
+    </div>`;
+  }).join('') || '<p class="hint">No sessions yet. Save your first one above.</p>';
+}
+
+$('logs').addEventListener('click', e => {
+  const b = e.target.closest('.rm');
+  if (!b) return;
+  const a = logs();
+  a.splice(+b.dataset.idx, 1);
+  if (saveLogs(a)) { $('logStatus').textContent = 'Session removed.'; renderLogs(); }
+});
+
+$('resultDate').addEventListener('change', updateLogForecast);
+
+$('saveCatch').addEventListener('click', () => {
+  const a = logs();
+  const date = $('resultDate').value || new Date().toLocaleDateString('en-CA');
+  const info = dayInfo[date];
+  const hours = Number($('resultHours').value);
+  a.unshift({
+    date,
+    spot: $('logSpot').value.trim(),
+    count: Math.max(0, Number($('resultCount').value) || 0),
+    hours: Number.isFinite(hours) && hours > 0 ? hours : null,
+    lure: $('lure').value.trim(),
+    score: info ? info.avg : null,
+    window: info && info.window ? info.window : null
+  });
+  if (saveLogs(a)) {
+    $('logStatus').textContent = 'Session saved on this browser.';
+    renderLogs();
+  } else {
+    $('logStatus').textContent = 'This browser would not save the session.';
+  }
+});
+
+/* ---------- start ---------- */
+$('resultDate').value = new Date().toLocaleDateString('en-CA');
+$('forecastDay').value = localISODate(new Date());
+updateClock();
+setInterval(updateClock, 1000);
+buildGauge();
+spots = loadSpots();
+renderSpotSelect();
+renderMySpots();
+initMap();
+restoreLast();
+renderLogs();
+load();
+</script>
+<script>
+(function(){
+ // reveal on scroll
+ var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('shown');io.unobserve(e.target)}})},{threshold:.08});
+ function arm(){document.querySelectorAll('.block:not(.reveal)').forEach(function(el,i){el.classList.add('reveal');el.style.transitionDelay=(i%3)*60+'ms';io.observe(el)})}
+ arm();document.querySelectorAll('.tab').forEach(function(t){t.addEventListener('click',function(){setTimeout(arm,30)})});
+ // sliding tab pill
+ var tabs=document.querySelector('.tabs');if(tabs){var pill=document.createElement('span');pill.className='tabpill';tabs.prepend(pill);
+  function move(){var a=tabs.querySelector('[aria-selected="true"]');if(!a)return;pill.style.left=a.offsetLeft+'px';pill.style.width=a.offsetWidth+'px'}
+  new MutationObserver(move).observe(tabs,{attributes:true,subtree:true,attributeFilter:['aria-selected']});addEventListener('resize',move);document.fonts&&document.fonts.ready.then(move);move()}
+ // animated score count-up
+ var sc=document.getElementById('dailyScore');if(sc){var busy=false;new MutationObserver(function(){if(busy)return;var n=sc.querySelector('.num');if(!n)return;var v=parseInt(n.textContent,10);if(isNaN(v))return;busy=true;n.classList.remove('pop');void n.offsetWidth;n.classList.add('pop');var t0=performance.now();(function f(t){var p=Math.min(1,(t-t0)/900);n.textContent=Math.round(v*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);else setTimeout(function(){busy=false},0)})(t0)}).observe(sc,{childList:true,subtree:true,characterData:true})}
+ // button ripple
+ document.addEventListener('pointerdown',function(e){var b=e.target.closest('.btn,.day,.tab');if(!b||b.disabled)return;var r=b.getBoundingClientRect(),s=Math.max(r.width,r.height),d=document.createElement('span');d.className='ripple';d.style.cssText='width:'+s+'px;height:'+s+'px;left:'+(e.clientX-r.left-s/2)+'px;top:'+(e.clientY-r.top-s/2)+'px';if(getComputedStyle(b).position==='static')b.style.position='relative';b.style.overflow='hidden';b.appendChild(d);setTimeout(function(){d.remove()},650)});
+ // hero tilt
+ var h=document.querySelector('.hero');if(h&&matchMedia('(hover:hover)').matches){h.style.transition='transform .4s cubic-bezier(.2,.8,.2,1)';h.addEventListener('mousemove',function(e){var r=h.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;h.style.transform='perspective(1200px) rotateX('+(-y*3)+'deg) rotateY('+(x*4)+'deg)'});h.addEventListener('mouseleave',function(){h.style.transform=''})}
+})();
+</script>
+</body>
+</html>
