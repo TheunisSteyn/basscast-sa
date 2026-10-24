@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 
 /* ---------- settings (stored on this device) ---------- */
-const APP_VERSION = '2026.10';
+const APP_VERSION = '2026.10.24';
 const SETTINGS_KEY = 'basscastSettings';
 const SETTING_CHOICES = {
   wind: ['kmh', 'kn', 'ms'],

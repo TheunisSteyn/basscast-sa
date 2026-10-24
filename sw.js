@@ -13,7 +13,7 @@
  *
  * Releasing a new version: bump VERSION below whenever any cached file changes.
  */
-const VERSION = 'v3-2026-10-24';
+const VERSION = 'v4-2026-10-24';
 const SHELL_CACHE = 'basscast-shell-' + VERSION;
 const RUNTIME_CACHE = 'basscast-runtime-' + VERSION;
 
