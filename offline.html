@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'">
 <meta name="theme-color" content="#EDF1EF">
 <title>BassCast SA · Offline</title>
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
@@ -28,8 +29,8 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <h1>You&rsquo;re offline</h1>
   <p>BassCast SA couldn&rsquo;t load because there&rsquo;s no internet connection, and the app hasn&rsquo;t been saved to this device yet.</p>
   <p>Open it once while you have signal and it will be ready to use offline after that, with your last forecast, saved spots and catch log.</p>
-  <button type="button" onclick="location.reload()">Try again</button>
+  <button type="button" id="retry">Try again</button>
 </main>
-<script>addEventListener('online', function () { location.reload(); });</script>
+<script src="offline.js"></script>
 </body>
 </html>
