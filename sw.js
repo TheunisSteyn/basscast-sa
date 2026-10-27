@@ -13,7 +13,7 @@
  *
  * Releasing a new version: bump VERSION below whenever any cached file changes.
  */
-const VERSION = 'v4-2026-10-24';
+const VERSION = 'v5-2026-10-27';
 const SHELL_CACHE = 'basscast-shell-' + VERSION;
 const RUNTIME_CACHE = 'basscast-runtime-' + VERSION;
 
@@ -26,6 +26,7 @@ const SHELL = [
   './manifest.webmanifest',
   './theme.js',
   './app.js',
+  './ui.js',
   './maplibre-loader.js',
   './effects.js',
   './pwa.js',

@@ -298,7 +298,7 @@ await test('damaged catch log entries are skipped, good ones kept', () => {
 });
 await test('settings only accept known values', () => {
   const s = current.app.cleanSettings({ wind: '<img>', theme: 'dark', home: 'x'.repeat(500), motion: 'yes', learn: false, layer: 'javascript:alert(1)' });
-  assert.equal(s.wind, 'kmh'); assert.equal(s.theme, 'dark'); assert.equal(s.home, ''); assert.equal(s.motion, false); assert.equal(s.learn, false); assert.equal(s.layer, 'Map');
+  assert.equal(s.wind, 'kmh'); assert.equal(s.theme, 'dark'); assert.equal(s.home, ''); assert.equal(s.motion, false); assert.equal(s.learn, false); assert.equal(s.layer, 'Hybrid'); // default layer is Hybrid since the 2026.10.27 redesign
 });
 await test('restored sessions are trimmed and typed', () => {
   const r = current.app.sanitizeLog({ date: '2026-10-01', spot: '<b>' + 'x'.repeat(500), count: '7', hours: 'abc', lure: 'y'.repeat(900), score: 900, tech: '<script>', period: 'midnight', spotKey: 'x:evil', factors: { water: 'a' } });

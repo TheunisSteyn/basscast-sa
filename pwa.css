@@ -1,48 +1,47 @@
-/* BassCast SA: install prompt and offline notices. Uses the app's own colour tokens. */
+/* BassCast SA: install prompt and offline notices. Uses the app's design tokens (index.html). */
 
 .installcard{
-  position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px)); /* sits above the bottom tab bar */
   z-index:900; /* below the app's sheets (1000) and toast (1100), so it never covers them */
-  width:calc(100% - 24px);max-width:520px;transform:translateX(-50%);
+  width:calc(100% - 24px);max-width:460px;transform:translateX(-50%);
   padding:16px 16px 14px;border-radius:20px;
-  background:rgba(247,249,248,.96);color:var(--ink);
-  backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
-  border:1px solid var(--line);
-  box-shadow:var(--shadow-lift,0 24px 48px -16px rgba(18,38,46,.28));
+  background:var(--sheet-bg,rgba(255,255,255,.95));color:var(--text,#0B1A20);
+  backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);
+  border:1px solid var(--glass-line-2,rgba(11,26,32,.14));
+  box-shadow:var(--shadow,0 12px 32px -14px rgba(11,26,32,.3));
 }
 .installcard[hidden]{display:none}
 .installcard.enter{animation:installIn .35s var(--ease,ease) both}
 @keyframes installIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
 html.reduce-motion .installcard.enter{animation:none}
 @media (prefers-reduced-motion:reduce){.installcard.enter{animation:none}}
-html.dark .installcard{background:rgba(16,36,43,.97);border-color:rgba(255,255,255,.1)}
 
 .installhead{display:flex;gap:12px;align-items:flex-start}
-.installhead img{flex:none;width:44px;height:44px;border-radius:11px;box-shadow:0 0 0 1px var(--line)}
-.installhead h2{margin:0 0 3px;font:800 1.1rem/1.2 var(--display);letter-spacing:-.015em;color:var(--ink)}
-.installhead p{margin:0;font-size:.9rem;line-height:1.4;color:var(--muted)}
+.installhead img{flex:none;width:44px;height:44px;border-radius:11px;box-shadow:0 0 0 1px var(--glass-line-2,rgba(11,26,32,.14))}
+.installhead h2{margin:0 0 3px;font:600 16px/1.25 var(--font,system-ui);letter-spacing:-.01em;color:var(--text)}
+.installhead p{margin:0;font-size:14px;line-height:1.4;color:var(--text-2)}
 
 .installperks{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;padding:0;list-style:none}
-.installperks li{font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.installperks li{font-size:12.5px;font-weight:500;padding:4px 10px;border-radius:99px;border:1px solid var(--glass-line-2);background:var(--glass-2);color:var(--text)}
 
-.installhelp{margin:12px 0 0;padding:11px 13px;border-radius:12px;background:var(--paper);border:1px solid var(--line);font-size:.88rem;line-height:1.45;color:var(--ink)}
+.installhelp{margin:12px 0 0;padding:11px 13px;border-radius:12px;background:var(--glass-2);border:1px solid var(--glass-line);font-size:14px;line-height:1.45;color:var(--text)}
 .installhelp[hidden]{display:none}
 .installhelp ol{margin:6px 0 0;padding-left:1.2em}
 .installhelp li{margin:2px 0}
-.installhelp .note{margin:7px 0 0;color:var(--muted);font-size:.82rem}
+.installhelp .note{margin:7px 0 0;color:var(--text-2);font-size:13px}
 .installhelp .ico{display:inline-block;vertical-align:-3px;width:16px;height:16px}
 
 .installbtns{display:flex;gap:8px;margin-top:14px}
-.installbtns .btn{min-height:44px;font-size:.95rem}
+.installbtns .btn{min-height:44px;font-size:15px}
 .installbtns #installGo{flex:1 1 auto}
 .installbtns #installLater{flex:0 0 auto}
-.installcard .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.installcard .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* Map: tiles need a live connection */
 #tab-map{position:relative}
 .mapoffline{
   display:none;margin:0 0 10px;padding:9px 12px;border-radius:12px;
-  background:rgba(227,167,47,.14);border:1px solid rgba(227,167,47,.5);
-  color:var(--ink);font-size:.86rem;line-height:1.4
+  background:color-mix(in oklab,var(--b-medium,#F59E0B) 14%,transparent);border:1px solid color-mix(in oklab,var(--b-medium,#F59E0B) 50%,transparent);
+  color:var(--text);font-size:13.5px;line-height:1.4
 }
 html.is-offline .mapoffline{display:block}

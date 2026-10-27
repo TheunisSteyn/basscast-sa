@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 
 /* ---------- settings (stored on this device) ---------- */
-const APP_VERSION = '2026.10.24';
+const APP_VERSION = '2026.10.27';
 const SETTINGS_KEY = 'basscastSettings';
 const SETTING_CHOICES = {
   wind: ['kmh', 'kn', 'ms'],
@@ -9,7 +9,7 @@ const SETTING_CHOICES = {
   theme: ['auto', 'light', 'dark'],
   layer: ['Map', 'Terrain', 'Satellite', 'Hybrid']
 };
-const SETTING_DEFAULTS = { wind: 'kmh', angler: 'both', theme: 'auto', layer: 'Map', home: '', motion: false, tips: true, learn: true };
+const SETTING_DEFAULTS = { wind: 'kmh', angler: 'both', theme: 'auto', layer: 'Hybrid', home: '', motion: false, tips: true, learn: true };
 function cleanSettings(o) {
   const out = Object.assign({}, SETTING_DEFAULTS);
   if (!o || typeof o !== 'object' || Array.isArray(o)) return out;
@@ -22,6 +22,15 @@ function cleanSettings(o) {
 }
 let settings = (() => { try { return cleanSettings(JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')); } catch { return cleanSettings(null); } })();
 function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); return true; } catch { return false; } }
+// Redesign (2026.10.27): the Map tab now opens on Hybrid. Anyone still on the old "Map" default is
+// moved across once; choosing "Map" again in Settings afterwards sticks.
+(function () {
+  try {
+    if (localStorage.getItem('basscastLayerV2')) return;
+    if (settings.layer === 'Map') { settings.layer = 'Hybrid'; saveSettings(); }
+    localStorage.setItem('basscastLayerV2', '1');
+  } catch (e) {}
+})();
 
 const WIND_UNITS = { kmh: { f: 1, u: 'km/h' }, kn: { f: 1 / 1.852, u: 'kn' }, ms: { f: 1 / 3.6, u: 'm/s' } };
 function windNum(kmh) {
@@ -35,7 +44,7 @@ function applyTheme() {
   const dark = settings.theme === 'dark' || (settings.theme === 'auto' && !!(darkQuery && darkQuery.matches));
   document.documentElement.classList.toggle('dark', dark);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#0E1F26' : '#EDF1EF');
+  if (meta) meta.setAttribute('content', dark ? '#0B1418' : '#EEF3F5');
 }
 if (darkQuery) {
   const onScheme = () => { if (settings.theme === 'auto') applyTheme(); };
@@ -88,16 +97,16 @@ function moonInfo(d) {
 function moonIconSvg(phase) {
   var ink = '#12262E';
   var mist = '#EDF1EF';
-  var base = '<circle cx="14" cy="14" r="11" fill="' + ink + '"/>';
+  var base = '<circle class="m-d" cx="14" cy="14" r="11" fill="' + ink + '"/>';
   var parts = {
     'New moon': '',
-    'Waxing crescent': '<path d="M14 3a11 11 0 0 1 0 22 7 11 0 0 0 0-22z" fill="' + mist + '"/>',
-    'First quarter': '<path d="M14 3a11 11 0 0 1 0 22z" fill="' + mist + '"/>',
-    'Waxing gibbous': '<path d="M14 3a11 11 0 1 1 0 22 4 11 0 0 0 0-22z" fill="' + mist + '"/>',
-    'Full moon': '<circle cx="14" cy="14" r="11" fill="' + mist + '"/><circle cx="14" cy="14" r="11" fill="none" stroke="' + ink + '" stroke-width="1.5"/>',
-    'Waning gibbous': '<path d="M14 3a11 11 0 1 0 0 22 4 11 0 0 1 0-22z" fill="' + mist + '"/>',
-    'Last quarter': '<path d="M14 3a11 11 0 0 0 0 22z" fill="' + mist + '"/>',
-    'Waning crescent': '<path d="M14 3a11 11 0 0 0 0 22 7 11 0 0 1 0-22z" fill="' + mist + '"/>'
+    'Waxing crescent': '<path d="M14 3a11 11 0 0 1 0 22 7 11 0 0 0 0-22z" class="m-l" fill="' + mist + '"/>',
+    'First quarter': '<path d="M14 3a11 11 0 0 1 0 22z" class="m-l" fill="' + mist + '"/>',
+    'Waxing gibbous': '<path d="M14 3a11 11 0 1 1 0 22 4 11 0 0 0 0-22z" class="m-l" fill="' + mist + '"/>',
+    'Full moon': '<circle class="m-l" cx="14" cy="14" r="11" fill="' + mist + '"/>',
+    'Waning gibbous': '<path d="M14 3a11 11 0 1 0 0 22 4 11 0 0 1 0-22z" class="m-l" fill="' + mist + '"/>',
+    'Last quarter': '<path d="M14 3a11 11 0 0 0 0 22z" class="m-l" fill="' + mist + '"/>',
+    'Waning crescent': '<path d="M14 3a11 11 0 0 0 0 22 7 11 0 0 1 0-22z" class="m-l" fill="' + mist + '"/>'
   };
   return '<svg viewBox="0 0 28 28" aria-hidden="true">' + base + (parts[phase] || '') + '</svg>';
 }
@@ -194,7 +203,7 @@ function solunarFor(moon, sunrise, sunset){
 function renderSolunar(moon, sunrise, sunset){
   const box=$('solunar'); if(!box) return;
   box.innerHTML = solunarFor(moon, sunrise, sunset).map(p=>`<div class="sol ${p.kind}"><b>${p.txt}</b><span>${p.name}</span></div>`).join('');
-  $('solunarNote').textContent='Solunar windows are estimated from the moon phase and local sun times, accurate to roughly half an hour. Gold edge marks the two major periods.';
+  $('solunarNote').textContent='Solunar windows are estimated from the moon phase and local sun times, accurate to roughly half an hour. The coloured edge marks the two major periods.';
 }
 const CACHE_KEY='basscastForecast';
 function saveForecast(lat, lon, data){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify({lat,lon,savedAt:Date.now(),data})); }catch{} }
@@ -704,6 +713,9 @@ const BANDS = [
   { label: 'Excellent', lo: 80, hi: 100, t: 100, note: 'Prime conditions. Make time for this one and fish the best window hard.' }
 ];
 const bandOf = s => BANDS.find(b => s <= b.hi) || BANDS[BANDS.length - 1];
+// Colour classes for the score bands (b-bad ... b-excellent). Presentation only.
+const BAND_KEYS = ['bad', 'slow', 'medium', 'good', 'excellent'];
+const bandKey = s => BAND_KEYS[BANDS.indexOf(bandOf(clamp(safeNum(s, 0))))];
 function quality(s) { return bandOf(safeNum(s, 0)).label; }
 
 function buildGauge() {
@@ -1438,9 +1450,9 @@ async function load(opts) {
 
     placeDate = noon.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' });
     setPlaceTag();
-    $('bestWindow').textContent = `Fish ${hh(startH)} to ${hh(endH)}`;
+    $('bestWindow').textContent = `Best ${hh(startH)}\u2013${hh(endH)}`;
     $('dailyScore').innerHTML = `<span class="num">${safeAvg}</span><span class="of">out of 100</span>`;
-    $('quality').textContent = quality(safeAvg) + ' day overall';
+    $('quality').textContent = quality(safeAvg) + ' conditions';
     updateGauge(safeAvg);
     // Conditions list (the outlook summary itself is written by renderAdvice, which knows the top lure)
     $('condWhen').textContent = `At your best hour, ${hh(startH)} to ${hh(endH)}`;
@@ -1466,7 +1478,7 @@ async function load(opts) {
     $('hours').innerHTML = currentHours.map((x, n) => {
       const t = hourOf(x.h.time);
       const inWin = t >= startH && t < endH;
-      return `<button type="button" class="bar${inWin ? ' win' : ''}${x.night ? ' dark' : ''}" data-i="${x.i}" aria-pressed="false" aria-label="${hh(t)}, score ${x.score}${inWin ? ', in best window' : ''}${x.night ? ', before sunrise or after sunset' : ''}">
+      return `<button type="button" class="bar b-${bandKey(x.score)}${inWin ? ' win' : ''}${x.night ? ' dark' : ''}" data-i="${x.i}" aria-pressed="false" aria-label="${hh(t)}, score ${x.score}${inWin ? ', in best window' : ''}${x.night ? ', before sunrise or after sunset' : ''}">
         <span class="track"><span class="fill" style="--h:${Math.max(6, x.score)}%;--t:${heat(x.score)};--i:${n}"></span></span>
         <span class="lbl${t % 3 === 0 ? ' show' : ''}">${t}</span>
       </button>`;
@@ -1518,6 +1530,26 @@ async function load(opts) {
   }
 }
 
+// Small weather icon for a day, from its best hour. Presentation only.
+const WXI = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const WX = {
+  sun: { label: 'Sunny', svg: WXI('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>') },
+  part: { label: 'Partly cloudy', svg: WXI('<path d="M9 4.5v1.3M4.4 6.4l.9.9M3 11h1.3M13.6 6.4l-.9.9"/><path d="M6.6 11.2a3.2 3.2 0 0 1 5.9-1.9"/><path d="M8 19h9a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.4 1.9A2.6 2.6 0 0 0 8 19z"/>') },
+  cloud: { label: 'Cloudy', svg: WXI('<path d="M7 18.5h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.6A3.2 3.2 0 0 0 7 18.5z"/>') },
+  fog: { label: 'Fog', svg: WXI('<path d="M4 9h16M6 13h12M4 17h16"/>') },
+  rain: { label: 'Rain', svg: WXI('<path d="M7 15.5h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.6A3.2 3.2 0 0 0 7 15.5z"/><path d="M8.5 18.5l-1 2M12.5 18.5l-1 2M16.5 18.5l-1 2"/>') },
+  storm: { label: 'Thunderstorms', svg: WXI('<path d="M7 14.5h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.6A3.2 3.2 0 0 0 7 14.5z"/><path d="m12.5 15-2 3.5h3l-2 3.5"/>') }
+};
+function wxKind(h) {
+  const c = safeNum(h && h.h && h.h.weather_code, 0), cloud = safeNum(h && h.cloud, 0);
+  if (c >= 95) return 'storm';
+  if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return 'rain';
+  if (c === 45 || c === 48) return 'fog';
+  if (cloud >= 70 || c === 3) return 'cloud';
+  if (cloud >= 30 || c === 2) return 'part';
+  return 'sun';
+}
+
 function localISODate(d) {
   const x = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
   return x.toISOString().slice(0, 10);
@@ -1533,15 +1565,15 @@ function renderWeek(data, ctx, a) {
     data.daily.time.forEach((day, idx) => {
       const r = scoreDayV2(data, idx, ctx, a);
       if (!r) return;
-      dayInfo[day] = { avg: r.dayScore, best: time(r.best.h.time), window: `${hh(r.startH)} to ${hh(r.endH)}`, factors: r.winFactors, water: Math.round(r.water * 10) / 10 };
+      dayInfo[day] = { avg: r.dayScore, best: time(r.best.h.time), window: `${hh(r.startH)} to ${hh(r.endH)}`, factors: r.winFactors, water: Math.round(r.water * 10) / 10, wx: wxKind(r.best) };
     });
     const cards = data.daily.time.slice(ctx.histDays).filter(d => dayInfo[d]);
     $('week').innerHTML = cards.map(day => {
       const c = dayInfo[day], d = new Date(day + 'T12:00:00');
-      return `<button type="button" class="day" data-day="${esc(day)}" aria-pressed="${day === selected}" aria-label="${d.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}, score ${c.avg}">
+      return `<button type="button" class="day b-${bandKey(c.avg)}" data-day="${esc(day)}" aria-pressed="${day === selected}" aria-label="${d.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}, score ${c.avg}, ${quality(c.avg).toLowerCase()}, ${WX[c.wx].label.toLowerCase()}">
         <div class="dn">${d.toLocaleDateString('en-ZA', { weekday: 'short' })} ${d.getDate()}</div>
-        <div class="ds">${c.avg}</div>
-        <div class="mini"><i style="width:${clamp(c.avg)}%;--t:${heat(c.avg)}"></i></div>
+        <span class="wx" title="${WX[c.wx].label}">${WX[c.wx].svg}</span>
+        <span class="badge">${c.avg}</span>
         <div class="db">${quality(c.avg)}</div>
       </button>`;
     }).join('');
@@ -1618,10 +1650,29 @@ function saveSpots() {
   try { localStorage.setItem(SPOT_KEY, JSON.stringify(spots)); return true; } catch { return false; }
 }
 
+// Score badges for the map (redesign). spotMeta() comes from ui.js and returns today's score for a
+// place once the spot scores have loaded; until then the badge shows a neutral dot.
+let damMarkers = [], spotMarkers = [];
+function markerIcon(kind, lat, lon, label) {
+  const m = typeof spotMeta === 'function' ? spotMeta(lat, lon) : null;
+  const sel = selected && Math.abs(selected.lat - lat) < 1e-4 && Math.abs(selected.lon - lon) < 1e-4;
+  const cls = 'mkb mk-' + kind + (m ? ' b-' + bandKey(m.score) : ' none') + (sel ? ' sel' : '');
+  const tip = esc(label || '') + (m ? ', ' + m.score + ' ' + quality(m.score).toLowerCase() : '');
+  return L.divIcon({
+    className: 'mk',
+    html: `<span class="${cls}" title="${tip}">${m ? m.score : ''}</span>`,
+    iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -18]
+  });
+}
+function refreshMarkerIcons() {
+  if (!map) return;
+  damMarkers.forEach(x => x.m.setIcon(markerIcon('dam', x.d.lat, x.d.lon, x.d.name)));
+  spotMarkers.forEach(x => x.m.setIcon(markerIcon('spot', x.sp.lat, x.sp.lon, x.sp.name)));
+}
 function pinIcon(fill, dot) {
   return L.divIcon({
     className: 'pin-icon',
-    html: `<svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 36C15 36 3 23 3 14a12 12 0 0 1 24 0c0 9-12 22-12 22z" fill="${fill}" stroke="#F7F9F8" stroke-width="2"/><circle cx="15" cy="14" r="4.5" fill="${dot}"/></svg>`,
+    html: `<svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 36C15 36 3 23 3 14a12 12 0 0 1 24 0c0 9-12 22-12 22z" fill="${fill}" stroke="#0B1418" stroke-width="2"/><circle cx="15" cy="14" r="4.5" fill="${dot}"/></svg>`,
     iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32]
   });
 }
@@ -1667,15 +1718,18 @@ function renderMySpots() {
     });
     return;
   }
-  box.innerHTML = spots.map(sp => editingId === sp.id
+  const meta = sp => (typeof spotMeta === 'function' ? spotMeta(sp.lat, sp.lon) : null);
+  const ranked = spots.slice();
+  if (ranked.every(meta)) ranked.sort((a, b) => meta(b).score - meta(a).score);
+  box.innerHTML = ranked.map(sp => editingId === sp.id
     ? `<form class="spotrow editing" data-id="${esc(sp.id)}">
         <label class="sr" for="rn-${esc(sp.id)}">Spot name</label>
         <input id="rn-${esc(sp.id)}" value="${esc(sp.name)}" maxlength="60" autocomplete="off">
         <button class="btn" type="submit">Save name</button>
         <button class="btn ghost" type="button" data-act="cancel">Cancel</button>
       </form>`
-    : `<div class="spotrow" data-id="${esc(sp.id)}">
-        <button type="button" class="spotname" data-act="use"><strong>${esc(sp.name)}</strong><span>${sp.lat.toFixed(3)}, ${sp.lon.toFixed(3)}${hasNote('s:' + sp.id) ? ' &middot; Has notes' : ''}</span></button>
+    : `<div class="spotrow" data-id="${esc(sp.id)}">${spotBadge(meta(sp))}
+        <button type="button" class="spotname" data-act="use"><strong>${esc(sp.name)}</strong><span>${meta(sp) ? spotLine(meta(sp)) : sp.lat.toFixed(3) + ', ' + sp.lon.toFixed(3)}${hasNote('s:' + sp.id) ? ' &middot; Has notes' : ''}</span></button>${spotTag(meta(sp))}
         <div class="spotbtns">
           <button type="button" class="link" data-act="rename" aria-label="Rename ${esc(sp.name)}">Rename</button>
           <button type="button" class="link" data-act="delete" aria-label="Delete ${esc(sp.name)}">Delete</button>
@@ -1683,6 +1737,16 @@ function renderMySpots() {
       </div>`).join('');
 }
 
+// Leaderboard pieces shared by My spots and the spot picker (redesign).
+function spotBadge(m) {
+  return m ? `<span class="badge b-${bandKey(m.score)}" aria-hidden="true">${m.score}</span>` : '<span class="badge none" aria-hidden="true"></span>';
+}
+function spotTag(m) {
+  return m ? `<span class="btag b-${bandKey(m.score)}">${esc(quality(m.score))}<span class="sr">, score ${m.score}</span></span>` : '';
+}
+function spotLine(m) {
+  return `Best ${hh(m.startH)}\u2013${hh(m.endH)} &middot; ${esc(fmtWind(m.wind))}${Number.isFinite(m.dir) ? ' ' + compass(m.dir) : ''}`;
+}
 function spotPopup(sp) {
   const d = document.createElement('div');
   d.className = 'spotpop';
@@ -1701,8 +1765,10 @@ function spotPopup(sp) {
 function renderSpotMarkers() {
   if (!map || !spotLayer) return;
   spotLayer.clearLayers();
+  spotMarkers = [];
   spots.forEach(sp => {
-    const m = L.marker([sp.lat, sp.lon], { icon: pinIcon('#E3A72F', '#12262E'), title: sp.name });
+    const m = L.marker([sp.lat, sp.lon], { icon: markerIcon('spot', sp.lat, sp.lon, sp.name), title: sp.name, riseOnHover: true });
+    spotMarkers.push({ m, sp });
     m.bindPopup(() => spotPopup(sp));
     m.on('click', () => applySelection({ kind: 'spot', id: sp.id, name: sp.name, lat: sp.lat, lon: sp.lon }));
     m.addTo(spotLayer);
@@ -1723,7 +1789,7 @@ function hideTempPin() {
 function showTempPin(lat, lon) {
   if (!map) return;
   if (tempMarker) { tempMarker.setLatLng([lat, lon]); return; }
-  tempMarker = L.marker([lat, lon], { icon: pinIcon('#1D4E5C', '#E3A72F'), draggable: true, title: 'New spot. Drag to adjust.' }).addTo(map);
+  tempMarker = L.marker([lat, lon], { icon: pinIcon('#56C7F0', '#0B1418'), draggable: true, title: 'New spot. Drag to adjust.' }).addTo(map);
   tempMarker.on('dragend', () => {
     const p = tempMarker.getLatLng();
     applySelection({ kind: 'free', name: 'Custom fishing spot', lat: p.lat, lon: p.lng }, { form: true });
@@ -1892,8 +1958,8 @@ function initMap() {
   }
 
   dams.forEach(d => {
-    const m = L.marker([d.lat, d.lon], { icon: pinIcon('#12262E', '#F7F9F8'), title: d.name }).addTo(map)
-      .bindPopup('<strong>' + esc(d.name) + '</strong>');
+    const m = L.marker([d.lat, d.lon], { icon: markerIcon('dam', d.lat, d.lon, d.name), title: d.name, riseOnHover: true }).addTo(map);
+    damMarkers.push({ m, d });
     m.on('click', () => applySelection({ kind: 'dam', name: d.name, lat: d.lat, lon: d.lon }));
   });
   spotLayer = L.layerGroup().addTo(map);
@@ -2005,7 +2071,7 @@ function updateLogForecast() {
 }
 
 let logShowAll = false;
-const bandColor = s => `color-mix(in oklab,var(--depth),var(--gold) ${heat(s)}%)`;
+const bandColor = s => `var(--b-${bandKey(s)})`;
 const num1 = n => (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, '');
 const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
 function fmtLogDate(d) {
@@ -2084,7 +2150,7 @@ function groupPanel(title, hint, groups, extra) {
   const max = Math.max(...items.map(g => g.avg), 1);
   return `<div class="tagpanel"><h4>${title}</h4><p class="fine">${hint}</p>` + items.slice(0, 6).map((g, i) => `<div class="bandrow2">
       <div class="brtop"><strong>${esc(g.label)}</strong>${i === 0 && items.length > 1 && g.n >= 2 ? '<span class="chip lead">Leading so far</span>' : ''}</div>
-      <div class="brmeter"><span style="width:${Math.max(4, Math.round(g.avg / max * 100))}%;background:linear-gradient(90deg,var(--depth),var(--gold))"></span></div>
+      <div class="brmeter"><span style="width:${Math.max(4, Math.round(g.avg / max * 100))}%;background:var(--accent)"></span></div>
       <div class="brnums"><b>${num1(g.avg)}</b> bass per session${g.perHr != null ? ` <span class="dotsep">&middot;</span> <b>${num1(g.perHr)}</b> per hour` : ''} <span class="dotsep">&middot;</span> ${plural(g.n, 'session')}${g.n < 3 ? ' <em>(early days)</em>' : ''}${extra ? extra(g) : ''}</div>
     </div>`).join('') + '</div>';
 }
@@ -2671,7 +2737,7 @@ $('introMap').addEventListener('click', function () { $('tabbtn-map').click(); }
   function build() {
     var sel = $('water'), groups = {}, order = [], spotItems = [];
     Array.prototype.forEach.call(sel.children, function (n) {
-      if (n.tagName === 'OPTION' && n.value !== 'custom') {
+      if (n.tagName === 'OPTION' && n.value !== 'custom' && n.value !== '') {
         var p = n.value.split(',');
         var key = REGION_NAME[regionFor(Number(p[0]), Number(p[1]))];
         if (!groups[key]) { groups[key] = []; order.push(key); }
@@ -2682,12 +2748,39 @@ $('introMap').addEventListener('click', function () { $('tabbtn-map').click(); }
     });
     var cur = currentVal();
     var tick = '<svg class="tick" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
-    function item(x) { return '<button type="button" class="sheetitem" data-v="' + esc(x.v) + '"' + (x.v === cur ? ' aria-current="true"' : '') + '><span>' + esc(x.t) + '</span>' + tick + '</button>'; }
+    // Redesign: each row is a leaderboard entry. Rows rank by today's score once the scores are in.
+    function where(x) {
+      if (x.v.indexOf('spot:') === 0) { var sp = spots.find(function (o) { return 'spot:' + o.id === x.v; }); return sp ? { lat: sp.lat, lon: sp.lon } : null; }
+      var p = x.v.split(','); return { lat: Number(p[0]), lon: Number(p[1]) };
+    }
+    function metaOf(x) { var w = where(x); return w && typeof spotMeta === 'function' ? spotMeta(w.lat, w.lon) : null; }
+    function item(x) {
+      var m = metaOf(x);
+      return '<button type="button" class="sheetitem" data-v="' + esc(x.v) + '"' + (x.v === cur ? ' aria-current="true"' : '') + '>' + spotBadge(m) +
+        '<span class="si-text"><span class="si-name">' + esc(x.t) + '</span><span class="si-meta">' + (m ? spotLine(m) : esc(x.region || 'My spot')) + '</span></span>' +
+        spotTag(m) + tick + '</button>';
+    }
+    function rank(a) {
+      if (!a.every(metaOf)) return a;
+      return a.slice().sort(function (p, q) { return metaOf(q).score - metaOf(p).score; });
+    }
     var html = '';
-    if (spotItems.length) html += '<div class="sheetgrp">My spots</div>' + spotItems.map(item).join('');
-    order.forEach(function (k) { html += '<div class="sheetgrp">' + esc(k) + '</div>' + groups[k].map(item).join(''); });
+    if (spotItems.length) html += '<div class="sheetgrp">My spots</div>' + rank(spotItems).map(item).join('');
+    var damsAll = [];
+    order.forEach(function (k) { groups[k].forEach(function (x) { x.region = k; damsAll.push(x); }); });
+    var ranked = damsAll.every(metaOf);
+    html += '<div class="sheetgrp">' + (ranked ? 'Dams, best first today' : 'Dams') + '</div>' + rank(damsAll).map(item).join('');
     list.innerHTML = html;
   }
+  // ui.js calls this when spot scores arrive, so an open picker re-ranks in place.
+  window.rebuildPicker = function () {
+    if (sheet.hidden) return;
+    var f = document.activeElement && document.activeElement.closest && document.activeElement.closest('.sheetitem');
+    var keep = f ? f.dataset.v : null, top = list.scrollTop;
+    build();
+    list.scrollTop = top;
+    if (keep) { var again = list.querySelector('.sheetitem[data-v="' + CSS.escape(keep) + '"]'); if (again) again.focus({ preventScroll: true }); }
+  };
   function open(btn) {
     opener = btn || null;
     build();
@@ -2796,21 +2889,23 @@ $('introMap').addEventListener('click', function () { $('tabbtn-map').click(); }
 
 /* ---- Share image: draws the card onto a canvas ---- */
 function drawShareCanvas(d, canvas) {
-  const W = 1080, PAD = 72, R = 128, TH = 214;
-  canvas.width = W; canvas.height = 1500;
+  // Redesign (2026.10.27): mirrors the Forecast hero. Dark base tinted by the day's band, score arc,
+  // band word, best-window pill and four condition tiles.
+  const W = 1080, PAD = 64, TH = 206, GAP = 18;
+  canvas.width = W; canvas.height = 1600;
   const ctx = canvas.getContext('2d');
-  const DISP = '"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif';
-  const BODY = '"Hanken Grotesk", "Segoe UI", system-ui, sans-serif';
-  const font = (w, px, fam) => `${w} ${px}px ${fam || DISP}`;
+  const F = '"Inter", "Segoe UI", system-ui, sans-serif';
+  const font = (w, px) => `${w} ${px}px ${F}`;
+  const spacing = px => { if ('letterSpacing' in ctx) ctx.letterSpacing = px + 'px'; };
   const rr = (x, y, w, h, r) => {
     ctx.beginPath(); ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   };
-  const fit = (text, maxW, px, min, weight, fam) => {
+  const fit = (text, maxW, px, min, weight) => {
     let s = px;
-    ctx.font = font(weight, s, fam);
-    while (s > min && ctx.measureText(text).width > maxW) { s -= 2; ctx.font = font(weight, s, fam); }
+    ctx.font = font(weight, s);
+    while (s > min && ctx.measureText(text).width > maxW) { s -= 2; ctx.font = font(weight, s); }
     if (ctx.measureText(text).width > maxW) {
       let t = text;
       while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
@@ -2818,11 +2913,19 @@ function drawShareCanvas(d, canvas) {
     }
     return { text, px: s };
   };
+  const BANDHEX = { excellent: '#34D399', good: '#2DD4BF', medium: '#FBBF24', slow: '#FB923C', bad: '#F87171' };
+  const sc = Math.max(0, Math.min(100, Number(d.score) || 0));
+  const band = BANDHEX[bandKey(sc)];
+  const mix = (hex, amt) => {
+    const a = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), b = [11, 20, 24];
+    return 'rgb(' + a.map((v, i) => Math.round(v * amt + b[i] * (1 - amt))).join(',') + ')';
+  };
+  const TXT = '#F2F7F8', TXT2 = 'rgba(242,247,248,.8)';
 
   // ---- layout first, so the image is only as tall as its content ----
   const maxW = W - PAD * 2;
   const wrapAt = sz => {
-    ctx.font = font(800, sz);
+    ctx.font = font(600, sz);
     const words = d.spot.split(/\s+/), out = []; let cur = '';
     words.forEach(w => {
       const t = cur ? cur + ' ' + w : w;
@@ -2831,119 +2934,99 @@ function drawShareCanvas(d, canvas) {
     if (cur) out.push(cur);
     return out;
   };
-  let size = 88, lines = [];
-  for (; size >= 64; size -= 4) { lines = wrapAt(size); if (lines.length === 1 && ctx.measureText(lines[0]).width <= maxW) break; }
+  let size = 76, lines = [];
+  for (; size >= 56; size -= 4) { lines = wrapAt(size); if (lines.length === 1 && ctx.measureText(lines[0]).width <= maxW) break; }
   if (lines.length !== 1 || ctx.measureText(lines[0]).width > maxW) {
-    for (size = 80; size >= 52; size -= 4) { lines = wrapAt(size); if (lines.length <= 2 && lines.every(l => ctx.measureText(l).width <= maxW)) break; }
-    if (lines.length > 2) {
-      ctx.font = font(800, size);
-      lines = [lines[0], fit(lines.slice(1).join(' '), maxW, size, size, 800).text];
-    }
+    for (size = 68; size >= 48; size -= 4) { lines = wrapAt(size); if (lines.length <= 2 && lines.every(l => ctx.measureText(l).width <= maxW)) break; }
+    if (lines.length > 2) { ctx.font = font(600, size); lines = [lines[0], fit(lines.slice(1).join(' '), maxW, size, size, 600).text]; }
   }
-  const lineH = size * 1.08;
-  const nameBase = 250;
-  const nameBottom = nameBase + (lines.length - 1) * lineH;
-  const cx = PAD + 150, cy = nameBottom + 80 + 150;
-  const ty = cy + R + 84;
-  const H = Math.round(ty + TH + 70 + 120);
+  const lineH = size * 1.12, nameBase = 250, nameBottom = nameBase + (lines.length - 1) * lineH;
+  const R = 270, cx = W / 2, cy = nameBottom + 70 + R;      // cy is the arc's baseline
+  const verdictY = cy + 118, pillY = verdictY + 48, tilesY = pillY + 132;
+  const H = Math.round(tilesY + TH + 150);
   canvas.height = H;   // resizing resets the context, everything below redraws from scratch
 
   // ---- background ----
-  let g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, '#0E1F26'); g.addColorStop(0.6, '#163C47'); g.addColorStop(1, '#1D4E5C');
+  let g = ctx.createLinearGradient(0, 0, W * 0.15, H);
+  g.addColorStop(0, mix(band, 0.42)); g.addColorStop(0.58, mix(band, 0.18)); g.addColorStop(1, '#0B1418');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  g = ctx.createRadialGradient(W, H, 0, W, H, 700);
-  g.addColorStop(0, 'rgba(227,167,47,.34)'); g.addColorStop(1, 'rgba(227,167,47,0)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  g = ctx.createRadialGradient(0, 0, 0, 0, 0, 640);
-  g.addColorStop(0, 'rgba(111,143,106,.32)'); g.addColorStop(1, 'rgba(111,143,106,0)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(237,241,239,.06)';
-  ctx.beginPath(); ctx.moveTo(0, H);
-  for (let x = 0; x <= W; x += 8) ctx.lineTo(x, H - 78 + Math.sin(x / 120) * 16);
-  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(237,241,239,.045)';
-  ctx.beginPath(); ctx.moveTo(0, H);
-  for (let x = 0; x <= W; x += 8) ctx.lineTo(x, H - 44 + Math.sin(x / 90 + 1.4) * 12);
-  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  ctx.save(); ctx.strokeStyle = 'rgba(242,247,248,.06)'; ctx.lineWidth = 2;
+  for (let i = 1; i <= 6; i++) { ctx.beginPath(); ctx.ellipse(W - 120, 170, 120 * i, 90 * i, -0.3, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.restore();
 
   // ---- brand row ----
-  ctx.save(); ctx.translate(PAD, 86); ctx.scale(1.3, 1.3);
-  ctx.fillStyle = '#EDF1EF';
+  ctx.save(); ctx.translate(PAD, 82); ctx.scale(1.2, 1.2);
+  ctx.fillStyle = TXT;
   ctx.fill(new Path2D('M2 22c6-10 16-16 28-16 8 0 14 3 20 8 3 2 6 3 9 2-2 3-5 5-9 6-1 4-4 7-8 9-5 2-11 1-15-2-3 3-7 4-11 3 2-3 3-7 2-10-5 1-10 1-16 0z'));
-  ctx.fillStyle = '#E3A72F'; ctx.beginPath(); ctx.arc(48, 16, 2.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#56C7F0'; ctx.beginPath(); ctx.arc(48, 16, 2.4, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-  ctx.fillStyle = '#F7F9F8'; ctx.font = font(800, 40);
-  ctx.fillText('BassCast SA', PAD + 64 * 1.3 + 18, 124);
+  ctx.fillStyle = TXT; ctx.font = font(600, 38);
+  ctx.fillText('BassCast SA', PAD + 64 * 1.2 + 18, 118);
   if (d.date) {
-    const dt = fit(d.date, 430, 30, 22, 400, BODY);
-    ctx.textAlign = 'right'; ctx.fillStyle = '#A9BEC4'; ctx.font = font(400, dt.px, BODY);
-    ctx.fillText(dt.text, W - PAD, 122); ctx.textAlign = 'left';
+    const dt = fit(d.date, 440, 30, 22, 400);
+    ctx.textAlign = 'right'; ctx.fillStyle = TXT2; ctx.font = font(400, dt.px);
+    ctx.fillText(dt.text, W - PAD, 116);
   }
 
   // ---- spot name ----
-  ctx.fillStyle = '#F7F9F8'; ctx.font = font(800, size);
-  lines.forEach((l, i) => { ctx.fillText(l, PAD, nameBase + i * lineH); });
+  ctx.textAlign = 'center'; ctx.fillStyle = TXT; ctx.font = font(600, size); spacing(-1);
+  lines.forEach((l, i) => { ctx.fillText(l, cx, nameBase + i * lineH); });
+  spacing(0);
 
-  // ---- score ring ----
-  ctx.lineWidth = 24; ctx.lineCap = 'round';
+  // ---- score arc ----
+  ctx.lineWidth = 20; ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(255,255,255,.14)';
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
-  const sc = Math.max(0, Math.min(100, Number(d.score) || 0));
+  ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, 2 * Math.PI); ctx.stroke();
   if (sc > 0) {
-    ctx.save();
-    ctx.shadowColor = 'rgba(227,167,47,.55)'; ctx.shadowBlur = 22;
-    ctx.strokeStyle = '#E3A72F';
-    ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * sc / 100); ctx.stroke();
+    ctx.save(); ctx.shadowColor = band; ctx.shadowBlur = 24; ctx.strokeStyle = band;
+    ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, Math.PI + Math.PI * sc / 100); ctx.stroke();
     ctx.restore();
   }
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFD27A'; ctx.font = font(800, 104);
-  ctx.fillText(String(d.score), cx, cy + 22);
-  ctx.fillStyle = '#A9BEC4'; ctx.font = font(400, 26, BODY);
-  ctx.fillText('out of 100', cx, cy + 66);
-  ctx.textAlign = 'left';
+  ctx.fillStyle = TXT; ctx.font = font(200, 250); spacing(-10);
+  ctx.fillText(String(d.score), cx, cy - 6);
+  spacing(4); ctx.fillStyle = TXT2; ctx.font = font(600, 24);
+  ctx.fillText('OUT OF 100', cx, cy + 42);
+  spacing(0);
 
-  // ---- quality pill + best window ----
-  const vx = cx + R + 70, vw = W - PAD - vx;
-  const qual = d.qual ? d.qual + ' day' : 'Forecast';
-  ctx.font = font(700, 32, BODY);
-  const qw = Math.min(vw, ctx.measureText(qual).width + 56);
-  g = ctx.createLinearGradient(vx, 0, vx + qw, 0);
-  g.addColorStop(0, '#F3C260'); g.addColorStop(1, '#E3A72F');
-  ctx.fillStyle = g; rr(vx, cy - 112, qw, 64, 32); ctx.fill();
-  ctx.fillStyle = '#12262E'; ctx.textAlign = 'center';
-  ctx.fillText(fit(qual, qw - 40, 32, 22, 700, BODY).text, vx + qw / 2, cy - 69);
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#A9BEC4'; ctx.font = font(400, 28, BODY);
-  ctx.fillText('Best window', vx, cy - 4);
-  const bw = fit(d.win, vw, 68, 36, 800);
-  ctx.fillStyle = '#F7F9F8'; ctx.font = font(800, bw.px);
-  ctx.fillText(bw.text, vx, cy + 66);
+  // ---- band word and best window ----
+  const qual = (d.qual || quality(sc)) + ' conditions';
+  ctx.font = font(600, 44);
+  const qw = ctx.measureText(qual).width, qx = cx - (qw + 40) / 2;
+  ctx.fillStyle = band; ctx.beginPath(); ctx.arc(qx + 12, verdictY - 15, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.textAlign = 'left'; ctx.fillStyle = TXT; ctx.fillText(qual, qx + 40, verdictY);
+  const win = 'Best ' + String(d.win).replace(/\s+to\s+/, '–');
+  ctx.font = font(600, 40);
+  const pw = Math.min(maxW, ctx.measureText(win).width + 72), px0 = cx - pw / 2;
+  ctx.fillStyle = band + '2E'; rr(px0, pillY, pw, 82, 41); ctx.fill();
+  ctx.strokeStyle = band + '8C'; ctx.lineWidth = 2.5; rr(px0, pillY, pw, 82, 41); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.fillStyle = TXT; ctx.fillText(fit(win, pw - 48, 40, 26, 600).text, cx, pillY + 55);
 
   // ---- condition tiles ----
-  const gap = 24, tw = (W - PAD * 2 - gap * 2) / 3;
+  const tw = (W - PAD * 2 - GAP * 3) / 4;
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
   const tiles = [
-    ['Wind', d.wind || '–', ''],
-    ['Pressure', d.pr || '–', d.trend ? d.trend.charAt(0).toUpperCase() + d.trend.slice(1) : ''],
-    ['Moon', d.moonName || '–', d.moonLit || '']
+    ['WATER', d.water || '–', d.waterSub || ''],
+    ['WIND', (d.wind || '–').replace(/\s+[NESW]{1,3}$/, ''), ((d.wind || '').match(/\s([NESW]{1,3})$/) || [])[1] ? 'From ' + d.wind.match(/\s([NESW]{1,3})$/)[1] : ''],
+    ['PRESSURE', d.pr ? d.pr.replace(/\s*hPa$/, '') : '–', d.trend ? cap(d.trend) : 'hPa'],
+    ['MOON', d.moonLit ? d.moonLit.replace(/\s*lit$/, '') : (d.moonName || '–'), d.moonName ? d.moonName.replace(/ moon$/i, '') : '']
   ];
+  ctx.textAlign = 'left';
   tiles.forEach((t, i) => {
-    const x = PAD + i * (tw + gap);
-    ctx.fillStyle = 'rgba(255,255,255,.07)'; rr(x, ty, tw, TH, 30); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 2; rr(x, ty, tw, TH, 30); ctx.stroke();
-    ctx.fillStyle = '#A9BEC4'; ctx.font = font(400, 24, BODY); ctx.fillText(t[0], x + 26, ty + 54);
-    const v = fit(t[1], tw - 52, 38, 24, 700);
-    ctx.fillStyle = '#F7F9F8'; ctx.font = font(700, v.px); ctx.fillText(v.text, x + 26, ty + 112);
-    if (t[2]) { const s2 = fit(t[2], tw - 52, 26, 20, 400, BODY); ctx.fillStyle = '#A9BEC4'; ctx.font = font(400, s2.px, BODY); ctx.fillText(s2.text, x + 26, ty + 156); }
+    const x = PAD + i * (tw + GAP);
+    ctx.fillStyle = 'rgba(255,255,255,.08)'; rr(x, tilesY, tw, TH, 26); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 2; rr(x, tilesY, tw, TH, 26); ctx.stroke();
+    spacing(2.5); ctx.fillStyle = TXT2; ctx.font = font(600, 20); ctx.fillText(t[0], x + 22, tilesY + 48); spacing(0);
+    const v = fit(t[1], tw - 44, 40, 24, 500);
+    ctx.fillStyle = TXT; ctx.font = font(500, v.px); ctx.fillText(v.text, x + 22, tilesY + 112);
+    if (t[2]) { const s2 = fit(t[2], tw - 44, 26, 18, 400); ctx.fillStyle = TXT2; ctx.font = font(400, s2.px); ctx.fillText(s2.text, x + 22, tilesY + 158); }
   });
 
   // ---- footer ----
-  ctx.fillStyle = '#A9BEC4'; ctx.font = font(400, 28, BODY);
-  if (d.sr && d.ss) ctx.fillText('Sunrise ' + d.sr + '  ·  Sunset ' + d.ss, PAD, ty + TH + 70);
-  ctx.textAlign = 'right'; ctx.font = font(400, 24, BODY); ctx.fillStyle = 'rgba(169,190,196,.8)';
-  ctx.fillText('Bass conditions for SA dams', W - PAD, ty + TH + 70);
+  ctx.textAlign = 'center'; ctx.fillStyle = TXT2; ctx.font = font(400, 28);
+  if (d.sr && d.ss) ctx.fillText('Sunrise ' + d.sr + '  ·  Sunset ' + d.ss, cx, tilesY + TH + 72);
+  ctx.font = font(400, 22); ctx.fillStyle = 'rgba(242,247,248,.6)';
+  ctx.fillText('Bass conditions for SA dams', cx, tilesY + TH + 112);
   ctx.textAlign = 'left';
   return canvas;
 }
@@ -2966,14 +3049,15 @@ function drawShareCanvas(d, canvas) {
   function collect() {
     var spot = chosenName || '';
     var score = read('gaugePinVal');
-    var win = read('bestWindow').replace(/^Fish\s+/i, '');
+    var win = read('bestWindow').replace(/^(Fish|Best)\s+/i, '').replace(/\u2013/g, ' to ');
     if (!spot || !/^\d+$/.test(score) || !win || /^Checking/i.test(win)) return null;
-    var qual = read('quality').replace(/\s*day overall$/i, '');
+    var qual = read('quality').replace(/\s*(day overall|conditions)$/i, '');
     if (/^Waiting/i.test(qual)) qual = '';
     var moon = tidy(read('moon')).split(/,\s*/);
     var tr = read('pressureTag').toLowerCase();
     var date = read('placeTag');
     var wind = read('wind'), pr = read('pressure'), sr = read('sunrise'), ss = read('sunset');
+    var water = read('wtVal').replace(/^about\s+/i, '').replace(/C$/, ''), waterSub = read('wtBadge');
     return {
       spot: spot,
       date: date && date !== 'Choose a spot' ? date : '',
@@ -2982,7 +3066,8 @@ function drawShareCanvas(d, canvas) {
       pr: pr && pr !== dash ? pr : '',
       trend: tr && !/^waiting/.test(tr) ? tr : '',
       moonName: moon[0] || '', moonLit: moon[1] || '',
-      sr: /\d/.test(sr) ? sr : '', ss: /\d/.test(ss) ? ss : ''
+      sr: /\d/.test(sr) ? sr : '', ss: /\d/.test(ss) ? ss : '',
+      water: /\d/.test(water) ? water : '', waterSub: waterSub
     };
   }
 
@@ -3004,27 +3089,30 @@ function drawShareCanvas(d, canvas) {
     var tile = function (label, value, sub) {
       return '<div><span>' + label + '</span><b>' + esc(value || dash) + '</b>' + (sub ? '<em>' + esc(sub) + '</em>' : '') + '</div>';
     };
-    var qualTxt = d.qual ? d.qual + ' day' : 'Forecast';
+    var cap = function (t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : ''; };
+    var n = Math.max(0, Math.min(100, Number(d.score)));
+    var arcD = 'M20 120a100 100 0 0 1 200 0';
     var card = $('shareCard');
+    card.setAttribute('data-band', bandKey(n));
     card.innerHTML =
       '<div class="sc-top"><span class="sc-brand">' + card.dataset.fish + 'BassCast SA</span><span class="sc-date">' + esc(d.date) + '</span></div>' +
       '<h3 class="sc-spot">' + esc(d.spot) + '</h3>' +
-      '<div class="sc-main">' +
-        '<div class="sc-ring" role="img" aria-label="Score ' + esc(d.score) + ' out of 100">' +
-          '<svg viewBox="0 0 80 80" aria-hidden="true"><circle class="trk" cx="40" cy="40" r="34"/><circle class="val" cx="40" cy="40" r="34"/></svg>' +
-          '<div class="num"><b>' + esc(d.score) + '</b><small>out of 100</small></div></div>' +
-        '<div class="sc-verdict"><span class="sc-qual">' + esc(qualTxt) + '</span>' +
-          '<span class="sc-winlabel">Best window</span><b class="sc-win">' + esc(d.win) + '</b></div>' +
-      '</div>' +
+      '<div class="sc-ring" role="img" aria-label="Score ' + esc(d.score) + ' out of 100">' +
+        '<svg viewBox="0 0 240 132" aria-hidden="true"><path class="trk" d="' + arcD + '" pathLength="100"/><path class="val" d="' + arcD + '" pathLength="100"/></svg>' +
+        '<div class="num"><b>' + esc(d.score) + '</b><small>out of 100</small></div></div>' +
+      '<div class="sc-verdict"><span class="sc-qual">' + esc((d.qual || quality(n)) + ' conditions') + '</span>' +
+        '<b class="sc-win">Best ' + esc(d.win.replace(/\s+to\s+/, '\u2013')) + '</b></div>' +
       '<div class="sc-tiles">' +
+        tile('Water', d.water ? d.water : '', d.waterSub) +
         tile('Wind', d.wind) +
-        tile('Pressure', d.pr, d.trend ? d.trend.charAt(0).toUpperCase() + d.trend.slice(1) : '') +
+        tile('Pressure', d.pr, cap(d.trend)) +
         tile('Moon', d.moonName, d.moonLit) +
       '</div>' +
       ((d.sr && d.ss) ? '<p class="sc-foot">Sunrise ' + esc(d.sr) + ' &middot; Sunset ' + esc(d.ss) + '</p>' : '<p class="sc-foot"></p>');
     var ring = card.querySelector('.sc-ring .val');
-    var off = 213.6 * (1 - Math.max(0, Math.min(100, Number(d.score))) / 100);
-    requestAnimationFrame(function () { requestAnimationFrame(function () { ring.style.strokeDashoffset = String(off); }); });
+    var off = String(100 - n);
+    if (motionOff()) ring.style.strokeDashoffset = off;
+    else requestAnimationFrame(function () { requestAnimationFrame(function () { ring.style.strokeDashoffset = off; }); });
   }
 
   function legacyCopy(text) {
@@ -3051,9 +3139,10 @@ function drawShareCanvas(d, canvas) {
   function loadFonts() {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
     var jobs = Promise.all([
-      document.fonts.load('800 40px "Bricolage Grotesque"'),
-      document.fonts.load('700 30px "Hanken Grotesk"'),
-      document.fonts.load('400 30px "Hanken Grotesk"')
+      document.fonts.load('200 250px "Inter"'),
+      document.fonts.load('400 30px "Inter"'),
+      document.fonts.load('500 40px "Inter"'),
+      document.fonts.load('600 40px "Inter"')
     ]).catch(function () {});
     return Promise.race([jobs, new Promise(function (r) { setTimeout(r, 1500); })]);
   }
