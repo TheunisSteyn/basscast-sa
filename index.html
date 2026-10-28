@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <!-- Security policy. GitHub Pages cannot send custom headers, so it is set here; it must stay
      above every script and stylesheet. Scripts may only come from this site and the three
      pinned library folders on unpkg, so injected markup cannot run code. If you add a new
@@ -956,6 +956,192 @@ html.dark .lurecard{background:transparent;border-color:var(--line)}
 .week .day[aria-pressed="true"]{background:linear-gradient(160deg,var(--ink),var(--depth));border-color:var(--ink);color:var(--mist)}
 html.dark .week .day[aria-pressed="true"]{background:var(--btn-grad);border-color:transparent;color:#F7F9F8}
 html.dark details.more{background:none;border-color:var(--line)}
+
+/* ===== POLISH LAYER (2026-10): same look, steadier system, built for one thumb =====
+   Sits last so it consolidates the layers above without rewriting them. Tokens first,
+   then type, touch targets, the phone bottom bar, and calmer motion. */
+:root{
+  /* spacing scale */
+  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--s-6:32px;
+  /* type scale: nothing below 12px */
+  --fs-xs:.78rem;--fs-sm:.875rem;--fs-md:1rem;--fs-lg:1.15rem;--fs-xl:1.3rem;
+  /* shape */
+  --r-sm:10px;--r-md:14px;--r-lg:22px;
+  /* touch */
+  --tap:44px;--tap-lg:48px;
+  /* phone bottom bar height, excluding the safe area */
+  --nav-h:0px;
+  /* outdoor contrast: slightly stronger secondary text and hairlines in light mode */
+  --muted:#43575E;
+  --line:#B9C7C3;
+  --surface-solid:rgba(255,255,255,.82);
+}
+html.dark{--surface-solid:rgba(20,44,52,.86)}
+html{scroll-padding-bottom:calc(var(--nav-h) + 96px)}
+.wrap{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+
+/* page titles (were inline styles) */
+.pagetitle{font:800 var(--fs-xl)/1.2 var(--display);letter-spacing:-.015em}
+.myspots{margin-top:var(--s-4)}
+.hint.solnote{margin-top:var(--s-2)}
+
+/* live numbers do not jitter as they update */
+.score .num,.day .ds,.cv,#wtVal,.lbl,.facts2 dd,.lstat b,.lr-count b,.sdrow>b,.pin span,.pt-tile b,.pt-ref b,
+.ptrend .val,.sc-ring .num b,.brnums b,#bestWindow,.detail,.sol b,.sc-win,.clock,.plabels,.wtline,.lightlbl{font-variant-numeric:tabular-nums}
+
+/* no label under 12px */
+.lbl{font-size:.75rem}
+.lab{font-size:.75rem}
+.mooncell .mn{font-size:.72rem}
+.sheetgrp,.rlabel,.ctxlabel{font-size:.75rem}
+.wtbadge,.cond .wtbadge{font-size:.75rem}
+.lightlbl,.plabels,.lr-count span,.sc-tiles span{font-size:.75rem}
+.bestbet,.frole{font-size:.75rem}
+
+/* one card family: same radius, padding and edge; no blur behind plain cards (cheap on budget phones) */
+.block,.logsummary{border-radius:var(--r-lg);background:var(--surface-solid);-webkit-backdrop-filter:none;backdrop-filter:none}
+.block{margin-top:var(--s-5);padding:var(--s-5)}
+.block.fold{padding:0}
+.rchip,.empty,.coach,.btn.ghost{-webkit-backdrop-filter:none;backdrop-filter:none}
+.block h2{font-size:var(--fs-xl)}
+.hint{margin:var(--s-1) 0 var(--s-3)}
+
+/* buttons: one set. Primary = gold, secondary = ink, ghost, destructive, icon */
+.btn{min-height:var(--tap);display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);text-align:center;line-height:1.2}
+.btn.gold{background:linear-gradient(135deg,#F3C260,var(--gold));color:#12262E;box-shadow:0 10px 24px -12px rgba(227,167,47,.75)}
+html.dark .btn.gold{background:linear-gradient(135deg,#F3C260,var(--gold));color:#12262E;border-color:transparent}
+.btn.gold:disabled{opacity:.55}
+.btn.is-done{background:linear-gradient(135deg,var(--depth),#2E7385)!important;color:#F7F9F8!important}
+.link,.rm,.olink{min-height:var(--tap);display:inline-flex;align-items:center}
+.rm{padding:0 var(--s-2)}
+[data-armed]{color:#9C2A1A!important;font-weight:700;text-decoration-color:currentColor}
+.btn[data-armed]{color:#fff!important;background:linear-gradient(135deg,#9C2A1A,#C2412C)!important;border-color:transparent!important}
+html.dark [data-armed]{color:#FF8A75!important}
+html.dark .btn[data-armed]{color:#fff!important}
+
+/* touch targets: visible parts can stay small, hit areas cannot */
+.iconbtn{width:var(--tap);height:var(--tap)}
+.iconbtn:hover:not(:disabled){transform:none}
+.spotpill{min-height:var(--tap)}
+.herobar>.spotpill{flex:0 1 auto;min-width:0}
+.coachx{width:var(--tap);height:var(--tap);margin:-8px -4px -8px 0}
+.tagchips{gap:var(--s-2)}
+.tagchip{min-height:var(--tap);padding:0 var(--s-4);display:inline-flex;align-items:center;gap:6px}
+.tagchip[aria-pressed="true"]::before{content:"";width:12px;height:12px;flex:none;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center/contain no-repeat}
+.segctl button{min-height:var(--tap)}
+.segctl{padding:2px}
+.rchip{min-height:var(--tap)}
+.sheetitem{min-height:var(--tap-lg)}
+.cond .btn.wtbtn,.hero .btn.wtbtn{min-height:var(--tap)}
+.spotpopbtns button{min-height:var(--tap);padding:0 14px}
+.switch input{inset:-8px;width:auto;height:auto}
+details>summary{padding-top:10px;padding-bottom:10px;min-height:var(--tap)}
+details.more>summary,.howitem summary{padding:10px 0;min-height:var(--tap)}
+.spotname{min-height:var(--tap)}
+.leaflet-touch .leaflet-bar a{width:var(--tap);height:var(--tap);line-height:var(--tap)}
+.tagchip:active,.segctl button:active,.rchip:active,.sheetitem:active,.day:active,.iconbtn:active:not(:disabled){transform:scale(.96)}
+
+/* clarity: the four choices on one row on a phone, short words, full name read aloud */
+.segshort{display:none}
+@media(max-width:520px){
+  .claritybox .segctl{flex-wrap:nowrap}
+  .claritybox .segctl button{flex:1 1 0;min-width:0;padding:0 4px}
+  .segfull{display:none}
+  .segshort{display:inline}
+}
+
+/* hourly chart: a finger can slide along the bars to read each hour */
+#hours{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+
+/* retry after a failed load */
+.retry{margin:0 0 var(--s-3)}
+.retry[hidden]{display:none}
+#load.spin svg,#tab-forecast.refreshing #load svg{animation:spin 1s linear infinite}
+
+/* catch log save area */
+.loggrid .savebar{align-self:end}
+.savebar .btn{width:100%}
+
+/* map: hint shown when one finger lands on the map on a phone */
+#map{position:relative}
+.maphint{position:absolute;inset:0;z-index:800;display:grid;place-items:center;padding:24px;text-align:center;pointer-events:none;
+  background:rgba(14,31,38,.45);color:#F7F9F8;font:700 1rem/1.35 var(--display);opacity:0;transition:opacity .2s ease}
+.maphint.show{opacity:1}
+
+/* calmer motion: no entrance animation on chrome, quick fade between tabs */
+.top,.tabs{animation:none}
+[role=tabpanel]:not([hidden]){animation:panelFade .16s ease both}
+@keyframes panelFade{from{opacity:.4}to{opacity:1}}
+.hero{animation-duration:.5s;animation-delay:0s}
+.reveal{opacity:1;transform:none;filter:none}
+.tab.tab-icon svg{transition:none}
+
+/* desktop and tablet keep the top tabs exactly as before */
+@media(min-width:721px){
+  .tab{min-height:var(--tap)}
+  .tab:not(.tab-icon) .tabico{display:none}
+  .tab-icon .tablabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .tab.tab-icon svg{transition:transform .5s var(--ease)}
+  .tab.tab-icon .tabico{width:19px;height:19px}
+}
+
+/* ===== PHONES: bottom navigation, room for the thumb ===== */
+@media(max-width:720px){
+  :root{--nav-h:64px}
+  body{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+  .top{position:relative;top:auto;margin-top:calc(8px + env(safe-area-inset-top));-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--surface-solid)}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;width:auto;margin:0;
+    padding:4px max(6px,env(safe-area-inset-left)) calc(4px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-right));
+    border:0;border-top:1px solid var(--line);border-radius:0;background:rgba(247,249,248,.96);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 -10px 24px -18px rgba(18,38,46,.45)}
+  html.dark .tabs{background:rgba(12,27,33,.96);border-top-color:rgba(255,255,255,.08)}
+  .tabpill{display:none}
+  .tab,.tab.tab-icon{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;padding:4px 2px;
+    border-radius:12px;font:700 .75rem/1.1 var(--display);color:var(--muted);text-align:center;flex:initial}
+  .tab .tabico,.tab.tab-icon .tabico{display:block;width:52px;height:30px;padding:4px 15px;border-radius:99px;transform:none!important;transition:background .2s ease,color .2s ease}
+  .tab[aria-selected="true"]{color:var(--ink)}
+  .tab[aria-selected="true"] .tabico{background:linear-gradient(135deg,var(--ink),var(--depth));color:var(--mist)}
+  html.dark .tab[aria-selected="true"] .tabico{background:var(--btn-grad);color:#F7F9F8}
+  html.dark .tab[aria-selected="true"]{background:none;color:var(--ink)}
+  .tab:focus-visible{outline-offset:-3px}
+  #tab-forecast,#tab-map,#tab-log,#tab-settings{padding-top:var(--s-4)}
+  .foot{margin-bottom:var(--s-5)}
+  .block{margin-top:var(--s-4);padding:20px var(--s-4)}
+  .block.fold{padding:0}
+
+  /* fixed layers sit above the bar */
+  .toast{bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px)}
+  .installcard{bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px)}
+  .sheetcard{padding-bottom:calc(16px + env(safe-area-inset-bottom));max-height:86vh}
+
+  /* map tab: shorter map so the actions land in the thumb zone; stacked full-width buttons */
+  #map{height:min(46vh,400px);min-height:260px}
+  .pick{flex-direction:column;align-items:stretch}
+  .pickbtns{display:grid;grid-template-columns:1fr;gap:var(--s-2)}
+  .pickbtns .btn{width:100%;min-height:var(--tap-lg)}
+
+  /* catch log: save button rides above the bottom bar while the form is on screen */
+  .loggrid .savebar{position:sticky;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));z-index:5;grid-column:1/-1;margin:0 -4px;padding:12px 4px 10px;
+    background:linear-gradient(180deg,rgba(234,239,237,0),rgba(234,239,237,.97) 32%)}
+  html.dark .loggrid .savebar{background:linear-gradient(180deg,rgba(14,34,41,0),rgba(14,34,41,.97) 32%)}
+  .savebar .btn{min-height:52px;font-size:1.02rem}
+
+  .heroacts{gap:var(--s-2)}
+}
+@media(max-width:400px){
+  .spotpill .js-spotname{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .spotpill{padding-top:6px;padding-bottom:6px;text-align:left}
+  .clock{white-space:nowrap}
+}
+@media(max-width:360px){
+  .hero{padding-left:16px;padding-right:16px}
+  .heroacts{gap:6px}
+  .tab,.tab.tab-icon{font-size:.72rem}
+  .tab .tabico,.tab.tab-icon .tabico{width:46px;padding:4px 12px}
+}
+@media(prefers-reduced-motion:reduce){[role=tabpanel]:not([hidden]){animation:none}}
 </style>
 </head>
 <body>
@@ -980,12 +1166,13 @@ html.dark details.more{background:none;border-color:var(--line)}
     </select>
   </div>
   <div id="status" class="status" role="status">Select a spot to see today&rsquo;s best fishing window.</div>
+  <button class="btn ghost retry" id="retryLoad" type="button" hidden>Try again</button>
 
   <div class="tabs" role="tablist" aria-label="Sections">
-    <button class="tab" role="tab" id="tabbtn-forecast" aria-controls="tab-forecast" aria-selected="true" type="button">Forecast</button>
-    <button class="tab" role="tab" id="tabbtn-map" aria-controls="tab-map" aria-selected="false" tabindex="-1" type="button">Map</button>
-    <button class="tab" role="tab" id="tabbtn-log" aria-controls="tab-log" aria-selected="false" tabindex="-1" type="button">Catch log</button>
-    <button class="tab tab-icon" role="tab" id="tabbtn-settings" aria-controls="tab-settings" aria-selected="false" tabindex="-1" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <button class="tab" role="tab" id="tabbtn-forecast" aria-controls="tab-forecast" aria-selected="true" type="button"><svg class="tabico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v2M5.6 5.6l1.4 1.4M3 12h2M19 12h2M17 7l1.4-1.4"/><path d="M7.5 14a4.5 4.5 0 1 1 9 0"/><path d="M3 18h18"/></svg><span class="tablabel">Forecast</span></button>
+    <button class="tab" role="tab" id="tabbtn-map" aria-controls="tab-map" aria-selected="false" tabindex="-1" type="button"><svg class="tabico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span class="tablabel">Map</span></button>
+    <button class="tab" role="tab" id="tabbtn-log" aria-controls="tab-log" aria-selected="false" tabindex="-1" type="button"><svg class="tabico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg><span class="tablabel">Catch log</span></button>
+    <button class="tab tab-icon" role="tab" id="tabbtn-settings" aria-controls="tab-settings" aria-selected="false" tabindex="-1" type="button" title="Settings"><svg class="tabico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="tablabel">Settings</span></button>
   </div>
 
   <input type="hidden" id="forecastDay">
@@ -1104,7 +1291,7 @@ html.dark details.more{background:none;border-color:var(--line)}
       <div class="sechead"><h2 id="whenTitle">When to fish</h2><span class="secsub" id="bestDay"></span></div>
       <div id="hours" class="bars" role="group" aria-label="Hourly fishing scores"></div>
       <p class="detail" id="hourDetail" aria-live="polite">Select an hour to see its conditions.</p>
-      <p class="fine">Taller bars are better hours. Underlined hours are your best window, and faded bars are before sunrise or after sunset. Tap a bar for details.</p>
+      <p class="fine">Taller bars are better hours. Underlined hours are your best window, and faded bars are before sunrise or after sunset. Tap a bar, or slide a finger along them, for details.</p>
       <h3 class="subhead">Next 7 days</h3>
       <div id="week" class="week"></div>
     </section>
@@ -1116,7 +1303,7 @@ html.dark details.more{background:none;border-color:var(--line)}
       <div class="setrow claritybox" id="clarityBox">
         <div class="settext"><span class="setlabel" id="lblClarity">Water clarity</span><p class="setsub" id="clarityNote">Not set yet, so slightly stained is assumed. Pick what you see at the dam.</p></div>
         <div class="segctl" role="group" aria-labelledby="lblClarity" id="claritySeg">
-          <button type="button" data-clarity="clear" aria-pressed="false">Clear</button><button type="button" data-clarity="slight" aria-pressed="false">Slightly stained</button><button type="button" data-clarity="moderate" aria-pressed="false">Moderately stained</button><button type="button" data-clarity="muddy" aria-pressed="false">Muddy</button>
+          <button type="button" data-clarity="clear" aria-pressed="false">Clear</button><button type="button" data-clarity="slight" aria-pressed="false" aria-label="Slightly stained"><span class="segfull">Slightly stained</span><span class="segshort" aria-hidden="true">Slight</span></button><button type="button" data-clarity="moderate" aria-pressed="false" aria-label="Moderately stained"><span class="segfull">Moderately stained</span><span class="segshort" aria-hidden="true">Stained</span></button><button type="button" data-clarity="muddy" aria-pressed="false">Muddy</button>
         </div>
       </div>
       <div id="tips" class="advice"><p class="sum">Advice appears once the forecast loads.</p></div>
@@ -1156,7 +1343,7 @@ html.dark details.more{background:none;border-color:var(--line)}
         <div id="moonStrip" class="moonstrip" role="list" aria-label="Moon phases"></div>
         <p class="moonmeta" id="moonMeta">Moon phase appears once the forecast loads.</p>
         <div class="solunar" id="solunar" aria-label="Solunar feeding windows"></div>
-        <p class="hint" id="solunarNote" style="margin-top:8px"></p>
+        <p class="hint solnote" id="solunarNote"></p>
       </div></div></div>
     </section>
 
@@ -1174,7 +1361,7 @@ html.dark details.more{background:none;border-color:var(--line)}
   </section>
 
   <section id="tab-map" role="tabpanel" aria-labelledby="tabbtn-map" hidden>
-    <h2 style="font:800 1.3rem var(--display)">Pick a spot</h2>
+    <h2 class="pagetitle">Pick a spot</h2>
     <p class="hint">Tap a dam pin to select it. Tap anywhere else to drop a new pin, then name it and save it as one of your own spots.</p>
     <div class="coachwrap light" id="mapTipWrap"><div class="coachclip"><div class="coach" role="note"><span class="coachico" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg></span><p><strong>Tip.</strong> Tap anywhere on the map to drop a pin, then name it and save it as your own spot. Tap a dam pin to select that dam instead.</p><button class="coachx" type="button" data-tip="map" data-wrap="mapTipWrap" aria-label="Dismiss tip"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div></div>
     <div id="map" role="application" aria-label="Map of South African bass fishing dams and your saved spots"></div>
@@ -1187,7 +1374,7 @@ html.dark details.more{background:none;border-color:var(--line)}
       <span id="mapPick">No spot selected yet.</span>
       <div class="pickbtns">
         <button class="btn ghost" id="locateMe" type="button">Use my location</button>
-        <button class="btn" id="useMapLocation" type="button" disabled>Show forecast for this spot</button>
+        <button class="btn gold" id="useMapLocation" type="button" disabled>Show forecast for this spot</button>
       </div>
     </div>
     <form id="spotForm" class="spotform" hidden>
@@ -1203,7 +1390,7 @@ html.dark details.more{background:none;border-color:var(--line)}
 
     <section class="block" id="spotDetails" hidden aria-labelledby="sdName"></section>
 
-    <section class="block" style="margin-top:18px">
+    <section class="block myspots">
       <h2>My spots</h2>
       <p class="hint">Saved on this device. They also appear in the spot menu at the top of the page.</p>
       <div id="mySpots"></div>
@@ -1220,19 +1407,19 @@ html.dark details.more{background:none;border-color:var(--line)}
   </section>
 
   <section id="tab-log" role="tabpanel" aria-labelledby="tabbtn-log" hidden>
-    <h2 style="font:800 1.3rem var(--display)">Catch log</h2>
+    <h2 class="pagetitle">Catch log</h2>
     <p class="hint">Record each session to compare forecasts with real results. Logs stay in this browser on this device.</p>
     <div class="loggrid">
       <div><label class="f" for="resultDate">Date</label><input id="resultDate" type="date"></div>
       <div><label class="f" for="logSpot">Spot</label><input id="logSpot" maxlength="80" placeholder="Dam name"></div>
-      <div><label class="f" for="resultCount">Bass caught</label><input id="resultCount" type="number" min="0" value="0"></div>
-      <div><label class="f" for="resultHours">Hours fished</label><input id="resultHours" type="number" min="0" step="0.5" placeholder="Optional"></div>
+      <div><label class="f" for="resultCount">Bass caught</label><input id="resultCount" type="number" inputmode="numeric" min="0" value="0"></div>
+      <div><label class="f" for="resultHours">Hours fished</label><input id="resultHours" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Optional"></div>
       <div class="logtags span4" id="logTags">
         <div class="tagrow"><span class="f">Technique <em>(optional)</em></span><div class="tagchips" role="group" aria-label="Technique"><button type="button" class="tagchip" data-group="tech" data-v="Soft plastics" aria-pressed="false">Soft plastics</button><button type="button" class="tagchip" data-group="tech" data-v="Crankbait" aria-pressed="false">Crankbait</button><button type="button" class="tagchip" data-group="tech" data-v="Topwater" aria-pressed="false">Topwater</button><button type="button" class="tagchip" data-group="tech" data-v="Spinnerbait" aria-pressed="false">Spinnerbait</button><button type="button" class="tagchip" data-group="tech" data-v="Jig" aria-pressed="false">Jig</button><button type="button" class="tagchip" data-group="tech" data-v="Other" aria-pressed="false">Other</button></div></div>
         <div class="tagrow"><span class="f">Time of day <em>(optional)</em></span><div class="tagchips" role="group" aria-label="Time of day"><button type="button" class="tagchip" data-group="period" data-v="dawn" aria-pressed="false">Dawn</button><button type="button" class="tagchip" data-group="period" data-v="morning" aria-pressed="false">Morning</button><button type="button" class="tagchip" data-group="period" data-v="midday" aria-pressed="false">Midday</button><button type="button" class="tagchip" data-group="period" data-v="afternoon" aria-pressed="false">Afternoon</button><button type="button" class="tagchip" data-group="period" data-v="dusk" aria-pressed="false">Dusk</button></div></div>
       </div>
       <div class="span3"><label class="f" for="lure">Lure or notes</label><input id="lure" maxlength="200" placeholder="Green pumpkin worm on a Texas rig, windy point"></div>
-      <button class="btn" id="saveCatch" type="button">Save session</button>
+      <div class="savebar"><button class="btn gold" id="saveCatch" type="button">Save session</button></div>
     </div>
     <p class="forecastnote" id="logForecast"></p>
     <div id="logStatus" class="status" role="status"></div>
@@ -1241,7 +1428,7 @@ html.dark details.more{background:none;border-color:var(--line)}
   </section>
 
   <section id="tab-settings" role="tabpanel" aria-labelledby="tabbtn-settings" hidden>
-    <h2 style="font:800 1.3rem var(--display)">Settings</h2>
+    <h2 class="pagetitle">Settings</h2>
     <p class="hint">Saved on this device and applied straight away.</p>
 
     <section class="block setblock" aria-labelledby="setFishTitle">

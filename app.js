@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 
 /* ---------- settings (stored on this device) ---------- */
-const APP_VERSION = '2026.10.24';
+const APP_VERSION = '2026.10.28';
 const SETTINGS_KEY = 'basscastSettings';
 const SETTING_CHOICES = {
   wind: ['kmh', 'kn', 'ms'],
@@ -740,7 +740,29 @@ function setStatus(t, err = false, phase) {
   el.textContent = t;
   el.className = 'status' + (p === 'error' ? ' error' : p === 'offline' ? ' offline' : '');
   el.dataset.phase = p;
+  const retry = $('retryLoad');
+  if (retry) retry.hidden = !(p === 'error' || p === 'offline');
+  const lb = $('load');
+  if (lb) lb.classList.toggle('spin', p === 'loading');
   document.dispatchEvent(new CustomEvent('basscast:status', { detail: { phase: p, text: t } }));
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const t = $('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2300);
+}
+// Two taps for anything that removes data: the first tap arms the button and says so.
+function armTwice(btn, armedText, act) {
+  if (btn.dataset.armed) { delete btn.dataset.armed; act(); return; }
+  btn.dataset.armed = '1';
+  const label = btn.textContent;
+  btn.textContent = armedText;
+  setTimeout(() => { if (btn.isConnected && btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = label; } }, 3500);
 }
 
 function updateClock() {
@@ -751,7 +773,12 @@ function updateClock() {
 
 /* ---------- tabs ---------- */
 const TABS = ['forecast', 'map', 'log', 'settings'];
+// Each tab keeps its own scroll position in memory, so switching back lands where you were.
+const tabScroll = {};
+function currentTab() { return TABS.find(n => !$('tab-' + n).hidden) || 'forecast'; }
 function showTab(name) {
+  const from = currentTab();
+  if (from !== name) tabScroll[from] = window.scrollY;
   TABS.forEach(n => {
     $('tab-' + n).hidden = n !== name;
     const b = $('tabbtn-' + n);
@@ -762,6 +789,7 @@ function showTab(name) {
   if (panel) {
     panel.querySelectorAll('.block').forEach(el => el.classList.add('shown'));
   }
+  if (from !== name) window.scrollTo(0, tabScroll[name] || 0);
   if (name === 'map' && map) {
     setTimeout(() => {
       map.invalidateSize();
@@ -1345,10 +1373,14 @@ $('wtForm').addEventListener('submit', e => {
   $('wtForm').hidden = true;
   load({ reuse: true });
 });
-$('wtClear').addEventListener('click', () => {
-  setMeasured(selected, Number($('lat').value), Number($('lon').value), null);
-  $('wtForm').hidden = true;
-  load({ reuse: true });
+$('wtClear').addEventListener('click', e => {
+  armTwice(e.currentTarget, 'Tap again to clear', () => {
+    $('wtClear').textContent = 'Use estimate';
+    setMeasured(selected, Number($('lat').value), Number($('lon').value), null);
+    $('wtForm').hidden = true;
+    load({ reuse: true });
+    showToast('Back to the estimated water temperature');
+  });
 });
 $('claritySeg').addEventListener('click', e => {
   const b = e.target.closest('button[data-clarity]');
@@ -1562,6 +1594,26 @@ $('hours').addEventListener('click', e => {
   if (!b) return;
   showHour(currentHours.find(x => x.i === +b.dataset.i));
 });
+// The bars are narrow on a phone, so a finger can also slide along the chart to read each hour.
+// Vertical swipes still scroll the page (touch-action: pan-y on #hours).
+(function () {
+  const el = $('hours');
+  let active = false, last = -1;
+  function pick(clientX) {
+    const bars = el.querySelectorAll('.bar');
+    for (const b of bars) {
+      const r = b.getBoundingClientRect();
+      if (clientX >= r.left - 1 && clientX <= r.right + 1) {
+        const i = +b.dataset.i;
+        if (i !== last) { last = i; showHour(currentHours.find(x => x.i === i)); }
+        return;
+      }
+    }
+  }
+  el.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; active = true; last = -1; pick(e.clientX); });
+  el.addEventListener('pointermove', e => { if (active) pick(e.clientX); }, { passive: true });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, () => { active = false; }));
+})();
 
 /* ---------- map and spots ---------- */
 const dams = [
@@ -1917,6 +1969,7 @@ $('spotForm').addEventListener('submit', e => {
   $('spotMsg').textContent = ok
     ? `Saved ${name}. It is in your list below and in the spot menu at the top.`
     : 'Saved for now, but this browser would not keep it after you close the page.';
+  if (ok) showToast('Spot saved');
 });
 $('spotCancel').addEventListener('click', () => { hideTempPin(); $('spotForm').hidden = true; });
 
@@ -1979,7 +2032,11 @@ function onWaterChange(fetchNow) {
   }
   if (fetchNow) load();
 }
-$('water').addEventListener('change', () => onWaterChange(true));
+$('water').addEventListener('change', () => {
+  tabScroll.forecast = 0;
+  if (currentTab() === 'forecast') window.scrollTo(0, 0);
+  onWaterChange(true);
+});
 
 $('load').addEventListener('click', load);
 
@@ -2533,9 +2590,11 @@ function renderContext(data, day, best, startH, endH, sunrise, sunset) {
 $('logs').addEventListener('click', e => {
   const b = e.target.closest('.rm');
   if (!b) return;
-  const a = logs();
-  a.splice(+b.dataset.idx, 1);
-  if (saveLogs(a)) { $('logStatus').textContent = 'Session removed.'; renderLogs(); }
+  armTwice(b, 'Tap again to remove', () => {
+    const a = logs();
+    a.splice(+b.dataset.idx, 1);
+    if (saveLogs(a)) { $('logStatus').textContent = 'Session removed.'; renderLogs(); showToast('Session removed'); }
+  });
 });
 
 $('resultDate').addEventListener('change', updateLogForecast);
@@ -2553,6 +2612,9 @@ $('logs').addEventListener('click', e => {
 });
 
 $('saveCatch').addEventListener('click', () => {
+  const btn = $('saveCatch');
+  if (btn.disabled) return;
+  btn.disabled = true;
   const a = logs();
   const date = $('resultDate').value || localISODate(new Date());
   const info = dayInfo[date];
@@ -2576,11 +2638,43 @@ $('saveCatch').addEventListener('click', () => {
     $('logStatus').textContent = 'Session saved on this browser.' + (info && info.factors ? '' : ' It has no forecast score, so it will not count towards learning.');
     clearTags();
     renderLogs();
+    showToast('Session saved');
+    btn.textContent = 'Saved';
+    btn.classList.add('is-done');
+    setTimeout(() => { btn.textContent = 'Save session'; btn.classList.remove('is-done'); btn.disabled = false; }, 1400);
     if (settings.learn && currentInfluence().active && typeof heroState !== 'undefined' && heroState === 'ready') load();
   } else {
     $('logStatus').textContent = 'This browser would not save the session.';
+    btn.disabled = false;
   }
 });
+
+$('retryLoad').addEventListener('click', () => { if (selected) load(); else $('tabbtn-map').click(); });
+
+// On a phone the map would otherwise catch every swipe and trap the page. With a finger-sized
+// pointer, one finger scrolls the page and taps still drop pins; two fingers pan and pinch the map.
+function mapGestures() {
+  if (!map || !window.matchMedia || !matchMedia('(pointer: coarse)').matches) return;
+  map.dragging.disable();
+  const box = $('map');
+  const hint = document.createElement('div');
+  hint.className = 'maphint';
+  hint.setAttribute('aria-hidden', 'true');
+  hint.textContent = 'Use two fingers to move the map';
+  box.appendChild(hint);
+  let timer = null, startX = 0, startY = 0;
+  box.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) { hint.classList.remove('show'); return; }
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+  }, { passive: true });
+  box.addEventListener('touchmove', e => {
+    if (e.touches.length > 1) { hint.classList.remove('show'); return; }
+    if (Math.abs(e.touches[0].clientX - startX) < 8 && Math.abs(e.touches[0].clientY - startY) < 8) return;
+    hint.classList.add('show');
+    clearTimeout(timer);
+    timer = setTimeout(() => hint.classList.remove('show'), 1200);
+  }, { passive: true });
+}
 
 /* ---------- start ---------- */
 $('resultDate').value = localISODate(new Date());
@@ -2592,6 +2686,7 @@ spots = loadSpots();
 renderSpotSelect();
 renderMySpots();
 initMap();
+mapGestures();
 renderLogs();
 
 /* ---------- progressive disclosure ---------- */
@@ -2664,9 +2759,22 @@ function setHero(state, line) {
 $('introGo').addEventListener('click', function () { load(); });
 $('introMap').addEventListener('click', function () { $('tabbtn-map').click(); });
 
+/* ---------- sheets and the phone's back button ---------- */
+// Opening a sheet adds one history step, so the Android back button closes the sheet
+// instead of leaving the app. Closing it any other way removes that step again.
+function sheetBack(closeFn) {
+  let pushed = false;
+  if (typeof window.addEventListener === 'function') window.addEventListener('popstate', () => { if (pushed) { pushed = false; closeFn(); } });
+  return {
+    opened() { if (pushed) return; try { history.pushState({ bcSheet: 1 }, ''); pushed = true; } catch {} },
+    closed() { if (!pushed) return; pushed = false; try { history.back(); } catch {} }
+  };
+}
+
 /* ---------- location picker ---------- */
 (function () {
   var sheet = $('picker'), list = $('pickerList'), opener = null;
+  var back = sheetBack(function () { close(); });
   function currentVal() { return $('water').value; }
   function build() {
     var sel = $('water'), groups = {}, order = [], spotItems = [];
@@ -2692,12 +2800,15 @@ $('introMap').addEventListener('click', function () { $('tabbtn-map').click(); }
     opener = btn || null;
     build();
     sheet.hidden = false;
+    back.opened();
     document.querySelectorAll('.spotpill').forEach(function (p) { p.setAttribute('aria-expanded', 'true'); });
     var on = list.querySelector('[aria-current="true"]') || list.querySelector('.sheetitem');
     if (on) { on.scrollIntoView({ block: 'center' }); on.focus({ preventScroll: true }); }
   }
   function close(returnFocus) {
+    if (sheet.hidden) return;
     sheet.hidden = true;
+    back.closed();
     document.querySelectorAll('.spotpill').forEach(function (p) { p.setAttribute('aria-expanded', 'false'); });
     if (returnFocus !== false && opener && opener.isConnected && opener.offsetParent !== null) opener.focus();
   }
@@ -2950,14 +3061,8 @@ function drawShareCanvas(d, canvas) {
 
 /* ---------- share the day's forecast ---------- */
 (function () {
-  var toastTimer = null, opener = null;
-  function toast(msg) {
-    var t = $('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2300);
-  }
+  var opener = null;
+  var toast = showToast;
   var read = function (id) { var e = $(id); return e ? String(e.textContent || '').replace(/\s+/g, ' ').trim() : ''; };
   var tidy = function (s) { return s.replace(/[.\s]+$/, ''); };
   var dash = '–';
@@ -3047,6 +3152,7 @@ function drawShareCanvas(d, canvas) {
   }
 
   var sheet = $('shareSheet'), current = null, imgPromise = Promise.resolve(null);
+  var back = sheetBack(function () { close(); });
   var FILE_NAME = 'basscast-forecast.png';
   function loadFonts() {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
@@ -3080,11 +3186,14 @@ function drawShareCanvas(d, canvas) {
     $('shareGo').hidden = !canShare;
     $('shareCopy').classList.toggle('ghost', canShare);
     sheet.hidden = false;
+    back.opened();
     var first = canShare ? $('shareGo') : $('shareCopy');
     first.focus({ preventScroll: true });
   }
   function close(returnFocus) {
+    if (sheet.hidden) return;
     sheet.hidden = true;
+    back.closed();
     if (returnFocus !== false && opener && opener.isConnected) opener.focus();
   }
 
