@@ -980,6 +980,9 @@ html.dark{--surface-solid:rgba(20,44,52,.86)}
 html{scroll-padding-bottom:calc(var(--nav-h) + 96px)}
 .wrap{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
 
+/* hidden always wins over the display rules below (e.g. .btn{display:inline-flex}) */
+[hidden]{display:none!important}
+
 /* page titles (were inline styles) */
 .pagetitle{font:800 var(--fs-xl)/1.2 var(--display);letter-spacing:-.015em}
 .myspots{margin-top:var(--s-4)}
@@ -1142,6 +1145,27 @@ details.more>summary,.howitem summary{padding:10px 0;min-height:var(--tap)}
   .tab .tabico,.tab.tab-icon .tabico{width:46px;padding:4px 12px}
 }
 @media(prefers-reduced-motion:reduce){[role=tabpanel]:not([hidden]){animation:none}}
+
+/* Conditions as compact tiles: the reading first, the explanation one tap away */
+.ctiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:var(--s-3)}
+.ctiles>li.ctile{display:block;padding:0;border:1px solid var(--line);border-top:1px solid var(--line);border-radius:var(--r-md);min-width:0;transition:background .2s ease}
+.ctiles>li.ctile.open{grid-column:1/-1;background:rgba(29,78,92,.05)}
+html.dark .ctiles>li.ctile.open{background:rgba(79,163,181,.08)}
+.ctop{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;min-height:76px;padding:12px;background:none;border:0;border-radius:inherit;text-align:left;cursor:pointer;color:inherit;font:inherit}
+.ctop:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
+.ctl{display:flex;align-items:center;gap:8px;min-width:0}
+.ctl .cico{flex:none;width:18px;height:18px;margin:0}
+.ctl .ck{flex:1;min-width:0;padding:0;font-size:.85rem;color:var(--muted)}
+.cchev{flex:none;color:var(--muted);transition:transform .2s var(--ease)}
+.ctile.open .cchev{transform:rotate(180deg)}
+.ctiles .cv{font:700 1.05rem/1.25 var(--display);color:var(--ink);overflow-wrap:anywhere}
+.ctiles .wtline{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
+.cx{padding:0 12px 12px}
+.ctiles .cn{grid-column:auto;margin:0;font-size:.9rem;line-height:1.45;color:var(--muted);max-width:60ch}
+.ctiles .cn .link{padding:0 0 0 4px}
+.ctiles .cond .waterbox,.ctiles .waterbox{margin:0;padding:0;background:none;border:0}
+.ctiles .wtmeta{margin-top:0}
+@media(min-width:721px) and (max-width:999px){.ctiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -1255,11 +1279,14 @@ details.more>summary,.howitem summary{padding:10px 0;min-height:var(--tap)}
     <div class="fgrid">
     <section class="block cond" aria-labelledby="condTitle">
       <div class="sechead"><h2 id="condTitle">Conditions</h2><span class="secsub" id="condWhen">At your best hour</span></div>
-      <ul class="condlist">
-        <li><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></svg><span class="ck">Air</span><span class="cv" id="condAir">&ndash;</span><span class="cn" id="condAirNote"></span></li>
-        <li class="cwater"><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg><span class="ck">Water</span>
-          <div class="cv waterbox" id="waterBox">
-            <div class="wtline"><b id="wtVal">&ndash;</b> <span class="wtbadge est" id="wtBadge">Estimated</span></div>
+      <ul class="condlist ctiles">
+        <li class="ctile">
+          <button type="button" class="ctop" aria-expanded="false" aria-controls="cx-air"><span class="ctl"><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></svg><span class="ck">Air</span><svg class="cchev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span><span class="cv" id="condAir">&ndash;</span></button>
+          <div class="cx" id="cx-air" hidden><p class="cn" id="condAirNote"></p></div>
+        </li>
+        <li class="ctile cwater">
+          <button type="button" class="ctop" aria-expanded="false" aria-controls="cx-water"><span class="ctl"><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg><span class="ck">Water</span><svg class="cchev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span><span class="cv wtline"><b id="wtVal">&ndash;</b> <span class="wtbadge est" id="wtBadge">Estimated</span></span></button>
+          <div class="cx" id="cx-water" hidden><div class="waterbox" id="waterBox">
             <p class="wtmeta" id="wtMeta">From the past week of air temperature.</p>
             <div class="wtacts"><button class="btn ghost wtbtn" id="wtEdit" type="button">Enter measured</button><button class="btn ghost wtbtn" id="wtClear" type="button" hidden>Use estimate</button></div>
             <form class="wtform" id="wtForm" hidden novalidate>
@@ -1267,12 +1294,24 @@ details.more>summary,.howitem summary{padding:10px 0;min-height:var(--tap)}
               <div class="wtformrow"><input id="wtInput" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 18.5"><button class="btn wtbtn" type="submit">Save</button><button class="btn ghost wtbtn" id="wtCancel" type="button">Cancel</button></div>
               <p class="wtmsg" id="wtMsg" role="status"></p>
             </form>
-          </div>
+          </div></div>
         </li>
-        <li><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/></svg><span class="ck">Wind</span><span class="cv" id="wind">&ndash;</span><span class="cn" id="windCall"></span></li>
-        <li><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="m12 13 3.5-3.5"/><path d="M12 5v1.5"/></svg><span class="ck">Pressure</span><span class="cv" id="condPressure">&ndash;</span><span class="cn" id="condPressureNote"></span></li>
-        <li><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="ck">Clarity</span><span class="cv" id="condClarity">Not set</span><span class="cn"><button type="button" class="link" id="toClarity">Set water clarity</button></span></li>
-        <li><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span class="ck">Season</span><span class="cv" id="condSeason">&ndash;</span><span class="cn" id="condSeasonNote"></span></li>
+        <li class="ctile">
+          <button type="button" class="ctop" aria-expanded="false" aria-controls="cx-wind"><span class="ctl"><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/></svg><span class="ck">Wind</span><svg class="cchev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span><span class="cv" id="wind">&ndash;</span></button>
+          <div class="cx" id="cx-wind" hidden><p class="cn" id="windCall"></p></div>
+        </li>
+        <li class="ctile">
+          <button type="button" class="ctop" aria-expanded="false" aria-controls="cx-pressure"><span class="ctl"><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="m12 13 3.5-3.5"/><path d="M12 5v1.5"/></svg><span class="ck">Pressure</span><svg class="cchev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span><span class="cv" id="condPressure">&ndash;</span></button>
+          <div class="cx" id="cx-pressure" hidden><p class="cn" id="condPressureNote"></p></div>
+        </li>
+        <li class="ctile">
+          <button type="button" class="ctop" aria-expanded="false" aria-controls="cx-clarity"><span class="ctl"><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="ck">Clarity</span><svg class="cchev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span><span class="cv" id="condClarity">Not set</span></button>
+          <div class="cx" id="cx-clarity" hidden><p class="cn">Clarity changes which colours and baits work best. <button type="button" class="link" id="toClarity">Set water clarity</button></p></div>
+        </li>
+        <li class="ctile">
+          <button type="button" class="ctop" aria-expanded="false" aria-controls="cx-season"><span class="ctl"><svg class="cico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span class="ck">Season</span><svg class="cchev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span><span class="cv" id="condSeason">&ndash;</span></button>
+          <div class="cx" id="cx-season" hidden><p class="cn" id="condSeasonNote"></p></div>
+        </li>
       </ul>
       <details class="more">
         <summary>More conditions</summary>

@@ -1355,6 +1355,13 @@ function syncClarityControl(v) {
 /* jump links from the outlook and the conditions list */
 function jumpTo(el) { if (!el) return; el.scrollIntoView({ behavior: motionOff() ? 'auto' : 'smooth', block: 'start' }); }
 $('toGuide').addEventListener('click', () => jumpTo($('guide')));
+// Conditions tiles: each shows its reading; tapping it opens the explanation underneath.
+document.querySelectorAll('.ctile .ctop').forEach(b => b.addEventListener('click', () => {
+  const li = b.closest('.ctile'), open = !li.classList.contains('open');
+  li.classList.toggle('open', open);
+  b.setAttribute('aria-expanded', String(open));
+  $(b.getAttribute('aria-controls')).hidden = !open;
+}));
 $('toClarity').addEventListener('click', () => { jumpTo($('clarityBox')); const b = $('claritySeg').querySelector('[aria-pressed="true"]') || $('claritySeg').querySelector('button'); if (b) setTimeout(() => b.focus({ preventScroll: true }), 300); });
 /* measured water temperature controls */
 $('wtEdit').addEventListener('click', () => {
